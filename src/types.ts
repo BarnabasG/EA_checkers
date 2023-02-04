@@ -1,5 +1,6 @@
 export type Move = {
-    origin: number;
-    destination: number;
+    start: number;
+    end: number;
     captures: number;
 };
+

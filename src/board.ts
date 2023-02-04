@@ -1,6 +1,6 @@
 import { Move } from './types';
 
-import { decToBin, pad } from './helper';
+import { printBoard, printBoardNum } from './helper';
 
 const BIN: Record<number, number> = [];
 BIN[0] = 1;
@@ -40,7 +40,7 @@ const CENTRE16 = BIN[9] | BIN[10] | BIN[13] | BIN[14] | BIN[17] | BIN[18] | BIN[
 
 
 
-class Board {
+export class Board {
 
     readonly white: number;
     readonly black: number;
@@ -60,30 +60,40 @@ class Board {
         this.blackKing = this.black & this.king;
     }
 
-    makemoveWhite(move: Move): Board {
-        const isKing = move.origin & this.king;
-        let white = this.white ^ move.origin;
+    makeMoveWhite(move: Move): Board {
+        const isKing = move.end & this.king;
+        // XOR white and move.start to set the white piece to 0 
+        console.log('white 1', printBoard(this));
+        console.log('move.start', printBoardNum(move.start));
+        let white = this.white ^ move.start;
+        console.log('white 2', printBoard(this));
+
+        //console.log('king 1', printBoard(this.king));
+        //console.log('isKing', printBoard(isKing));
         let king = this.king ^ isKing;
 
         const black = this.black ^ move.captures;
         king ^= move.captures & this.king;
 
-        white |= move.destination;
-        king |= king ? move.destination : move.destination & KINGROW_WHITE;
+        console.log('white 3', printBoard(this));
+        white |= move.end;
+        king |= king ? move.end : move.end & KINGROW_WHITE;
+
+        console.log('white 4', printBoard(this));
 
         return new Board(white, black, king);
     }
 
-    makemoveBlack(move: Move): Board {
-        const isKing = move.origin & this.king;
-        let black = this.black ^ move.origin;
+    makeMoveBlack(move: Move): Board {
+        const isKing = move.start & this.king;
+        let black = this.black ^ move.end;
         let king = this.king ^ isKing;
 
         const white = this.white ^ move.captures;
         king ^= move.captures & this.king;
 
-        black |= move.destination;
-        king |= king ? move.destination : move.destination & KINGROW_BLACK;
+        black |= move.end;
+        king |= king ? move.end : move.end & KINGROW_BLACK;
 
         return new Board(white, black, king);
     }
@@ -174,10 +184,11 @@ class Board {
 let board = new Board();
 console.log(board);
 let x = board.getPossibleMovesWhite();
-console.log(pad(decToBin(x), 32));
+console.log(printBoardNum(x));
 x = board.getPossibleMovesBlack();
-console.log(pad(decToBin(x), 32));
+console.log(printBoardNum(x));
 
-//const { white, black, king } = board;
-//console.table({ white, black, king });
+var m: Move = { start: BIN[9], end: BIN[13], captures: 0 };
 
+board = board.makeMoveWhite(m);
+printBoard(board);
