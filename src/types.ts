@@ -4,3 +4,7 @@ export type Move = {
     captures: number;
 };
 
+export enum Player {
+    WHITE,
+    BLACK,
+}

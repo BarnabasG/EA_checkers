@@ -30,6 +30,18 @@ export function printBoardNum(n: number | string) {
     return lists;
 }
 
+export function getPresentBits(value: number): number[] {
+
+    const bitArr: number[] = [];
+
+    for (let index = 0; index < 32; index++) {
+      let bit = value & (1 << index);
+      if (bit) bitArr.push(bit);
+    }
+  
+    return bitArr;
+  }
+
 export function printBoard(board: Board) {
 
     const arr: string[] = Array(32).fill('-');
