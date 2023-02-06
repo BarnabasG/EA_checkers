@@ -6,6 +6,8 @@ let checkers = new Checkers();
 
 // Play 10 moves
 for (let index = 0; index < 10; index++) {
+    console.log(checkers.player)
+    console.log(`Turn ${index + 1}: ${checkers.player === 0 ? 'White' : 'Black'}`);
     let moves = checkers.getMoves();
     for (let i = 0; i < moves.length; i++) {
         console.log(`Possible Move ${i + 1}: ${getBoardString(moves[i].start)} -> ${getBoardString(moves[i].end)} [${moves[i].captures}]`);

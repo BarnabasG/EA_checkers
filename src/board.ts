@@ -62,7 +62,7 @@ export class Board {
 
     makeMoveWhite(move: Move): Board {
         const isKing = move.start & this.king;
-        // XOR white and move.start to set the white piece to 0 
+        // XOR white and move.start to set the white piece to 0
         //console.log('white 1', printBoard(this));
         //console.log('move.start', printBoardNum(move.start));
         let white = this.white ^ move.start;
@@ -109,6 +109,8 @@ export class Board {
             moves |= ((this.empty & LEFT5) << 3) & this.whiteKing;
         }
 
+        console.log('white moves', printBoardNum(moves));
+
         return moves;
     }
 
@@ -122,6 +124,8 @@ export class Board {
             moves |= ((this.empty & RIGHT3) >> 3) & this.blackKing;
             moves |= ((this.empty & RIGHT5) >> 5) & this.blackKing;
         }
+
+        //console.log('black moves', printBoardNum(moves));
 
         return moves;
     }
@@ -206,45 +210,53 @@ export class Board {
     
         return moveList;
     }
-
-    getCapturesWhite(start: number, king=start & this.whiteKing): Move[] {
-        const moves: Move[] = [];
-        const bitshifts = [4, -4, 3, -3, 5, -5];
     
-        for (const jump of bitshifts) {
-            const c = (start << jump) & this.black & (jump === 4 || jump === -4 ? this.empty : LEFT3 << jump > 0 ? LEFT3 : RIGHT3);
-            if (c) {
-                moves.push({ start, end: c >> Math.abs(jump), captures: c });
-            }
-            if (king && jump < 0) {
-                const c = (start >> -jump) & this.black & (jump === -4 ? this.empty : RIGHT3);
-                if (c) {
-                moves.push({ start, end: c >> -jump, captures: c });
-                }
-            }
+    
+    getCapturesWhite(start: number, king = start & this.whiteKing): Move[] {
+        const moves: Move[] = [];
+        const checkAndPush = (c: number, d: number) => {
+            if (d) moves.push({ start, end: d, captures: c });
+        };
+      
+        const c1 = (start << 4) & this.black;
+        checkAndPush(c1, ((c1 & LEFT3) << 3) | ((c1 & LEFT5) << 5) & this.empty);
+      
+        const c2 = (((start & LEFT3) << 3) | ((start & LEFT5) << 5)) & this.black;
+        checkAndPush(c2, (c2 << 4) & this.empty);
+      
+        if (king) {
+            const c3 = (start >> 4) & this.black;
+            checkAndPush(c3, ((c3 & RIGHT3) >> 3) | ((c3 & RIGHT5) >> 5) & this.empty);
+        
+            const c4 = (((start & RIGHT3) >> 3) | ((start & RIGHT5) >> 5)) & this.black;
+            checkAndPush(c4, (c4 >> 4) & this.empty);
         }
+      
         return moves;
     }
 
     getCapturesBlack(start: number, king=start & this.blackKing): Move[] {
         const moves: Move[] = [];
-        const bitshifts = [4, -4, 3, -3, 5, -5];
-    
-        for (const jump of bitshifts) {
-            const c = (start >> jump) & this.white & (jump === 4 || jump === -4 ? this.empty : RIGHT3 >> jump > 0 ? RIGHT3 : LEFT3);
-            if (c) {
-                moves.push({ start, end: c << Math.abs(jump), captures: c });
-            }
-            if (king && jump > 0) {
-                const c = (start << jump) & this.white & (jump === 4 ? this.empty : LEFT3);
-                if (c) {
-                moves.push({ start, end: c << jump, captures: c });
-                }
-            }
+        const checkAndPush = (c: number, d: number) => {
+            if (d) moves.push({ start, end: d, captures: c });
+        };
+      
+        const c1 = (start >> 4) & this.white;
+        checkAndPush(c1, ((c1 & RIGHT3) >> 3) | ((c1 & RIGHT5) >> 5) & this.empty);
+      
+        const c2 = (((start & RIGHT3) >> 3) | ((start & RIGHT5) >> 5)) & this.white;
+        checkAndPush(c2, (c2 >> 4) & this.empty);
+      
+        if (king) {
+            const c3 = (start << 4) & this.white;
+            checkAndPush(c3, ((c3 & LEFT3) << 3) | ((c3 & LEFT5) << 5) & this.empty);
+        
+            const c4 = (((start & LEFT3) << 3) | ((start & LEFT5) << 5)) & this.white;
+            checkAndPush(c4, (c4 << 4) & this.empty);
         }
+      
         return moves;
     }
-    
 
 
 

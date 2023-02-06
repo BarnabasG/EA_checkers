@@ -1,6 +1,6 @@
 import { Board } from "./board";
 import { Player, Move } from "./types";
-import { getPresentBits } from "./helper";
+import { getPresentBits, printBoardNum } from "./helper";
 
 
 
@@ -23,12 +23,13 @@ export class Checkers {
     }
 
     getMoves(): Move[] {
-        console.log(this.moveList);
+        console.log('movelist1', this.moveList);
         if (!this.moveList) {
-          const jumpers = this.getPiecesWithCaptures();
-          this.moveList = jumpers ? this.getCaptureList(jumpers) : this.getMoveList(this.getPiecesWithMoves());
+          const capturePieces = this.getPiecesWithCaptures();
+          console.log('capturePieces', printBoardNum(capturePieces));
+          this.moveList = capturePieces ? this.getCaptureList(capturePieces) : this.getMoveList(this.getPiecesWithMoves());
         }
-        console.log(this.moveList);
+        console.log('movelist2', this.moveList);
         return this.moveList;
     }
 
@@ -46,12 +47,12 @@ export class Checkers {
         return new Checkers(nextBitboard, nextPlayerToMove);
     }
 
-    private getMoveList(movers: number): Move[] {
-        return getPresentBits(movers).flatMap(mover => this.getMovesFromCoord(mover));
-      }
+    private getMoveList(moveablePieces: number): Move[] {
+        return getPresentBits(moveablePieces).flatMap(moveablePieces => this.getMovesFromCoord(moveablePieces));
+    }
       
-    private getCaptureList(jumpers: number): Move[] {
-        return getPresentBits(jumpers).flatMap(jumper => this.getCapturesfromCoord(jumper));
+    private getCaptureList(capturePieces: number): Move[] {
+        return getPresentBits(capturePieces).flatMap(capturePieces => this.getCapturesfromCoord(capturePieces));
     }
     
     
@@ -68,30 +69,30 @@ export class Checkers {
     }
 
 
-
     private getMovesFromCoord(start: number): Move[] {
         return this.player === Player.WHITE ? this.board.getMovesWhite(start) : this.board.getMovesBlack(start);
     }
 
-
     private getCapturesfromCoord(start: number): Move[] {
+
+        console.log('start', printBoardNum(start))
+        console.log('player', this.player)
+        console.log(Player.WHITE)
+        console.log(this.player === Player.WHITE)
         
         const captures: Move[] = this.player === Player.WHITE ? this.board.getCapturesWhite(start): this.board.getCapturesBlack(start);
 
+        console.log('captures', captures);
+
+        //gets stuck here TODO
         while (captures.length > 0) {
             const jumpMove = captures.pop();
             if (!jumpMove) break;
 
             const nextJumpMoves =
                 this.player === Player.WHITE
-                ? this.board.getCapturesWhite(
-                    jumpMove.end,
-                    jumpMove.start & this.board.king
-                    )
-                : this.board.getCapturesBlack(
-                    jumpMove.end,
-                    jumpMove.start & this.board.king
-                    );
+                    ? this.board.getCapturesWhite(jumpMove.end, jumpMove.start & this.board.king)
+                    : this.board.getCapturesBlack(jumpMove.end, jumpMove.start & this.board.king);
 
             if (nextJumpMoves.length > 0) {
                 captures.push(
