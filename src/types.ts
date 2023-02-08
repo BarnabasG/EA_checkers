@@ -8,3 +8,9 @@ export enum Player {
     WHITE,
     BLACK,
 }
+
+export enum Status {
+    PLAYING,
+    WHITE_WON,
+    BLACK_WON,
+}

@@ -16,7 +16,7 @@ export function getBoardString(n: number | string) {
     return pad(decToBin(n));
 }
 
-export function printBoardNum(n: number | string) {
+export function getBoardFomBin(n: number | string) {
 
     let lists = getBoardString(n).match(/.{1,4}/g)
 
@@ -85,4 +85,8 @@ export function printBoard(board: Board) {
 
     console.log(lists);
     return;
+}
+
+export function getRandom(arr: any[]) {
+    return arr[arr.length * Math.random() | 0];
 }

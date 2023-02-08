@@ -1,6 +1,6 @@
 import { Board } from "./board";
-import { Player, Move } from "./types";
-import { getPresentBits, printBoardNum } from "./helper";
+import { Player, Move, Status } from "./types";
+import { getPresentBits, getBoardFomBin } from "./helper";
 
 
 
@@ -23,13 +23,13 @@ export class Checkers {
     }
 
     getMoves(): Move[] {
-        console.log('movelist1', this.moveList);
+        //console.log('movelist1', this.moveList);
         if (!this.moveList) {
           const capturePieces = this.getPiecesWithCaptures();
-          console.log('capturePieces', printBoardNum(capturePieces));
+          //capturePieces ? console.log('capturePieces', getBoardFomBin(capturePieces)) : console.log('no capturePieces');
           this.moveList = capturePieces ? this.getCaptureList(capturePieces) : this.getMoveList(this.getPiecesWithMoves());
         }
-        console.log('movelist2', this.moveList);
+        //console.log('movelist2', this.moveList);
         return this.moveList;
     }
 
@@ -41,8 +41,14 @@ export class Checkers {
             throw new Error('invalid move');
         }
     
+        //console.log('move', getBoardFomBin(move.start), getBoardFomBin(move.end))
+        if (move.captures) getBoardFomBin(move.captures)
+        //console.log('before')
+        //printBoard(this.board);
         const nextBitboard = this.player === Player.WHITE ? this.board.makeMoveWhite(move) : this.board.makeMoveBlack(move);
         const nextPlayerToMove = this.player === Player.WHITE ? Player.BLACK : Player.WHITE;
+        //console.log('after')
+        //printBoard(nextBitboard);
     
         return new Checkers(nextBitboard, nextPlayerToMove);
     }
@@ -75,38 +81,57 @@ export class Checkers {
 
     private getCapturesfromCoord(start: number): Move[] {
 
-        console.log('start', printBoardNum(start))
-        console.log('player', this.player)
-        console.log(Player.WHITE)
-        console.log(this.player === Player.WHITE)
+        //console.log('start', getBoardFomBin(start))
+        //console.log('player', this.player)
+        //console.log(Player.WHITE)
+        //console.log(this.player === Player.WHITE)
         
-        const captures: Move[] = this.player === Player.WHITE ? this.board.getCapturesWhite(start): this.board.getCapturesBlack(start);
+        const searchNodes: Move[] = this.player === Player.WHITE ? this.board.getCapturesWhite(start): this.board.getCapturesBlack(start);
+        const capturesFound: Move[] = [];
 
-        console.log('captures', captures);
+        //console.log('searchNodes', searchNodes);
+        //console.log('captures found', capturesFound);
+        
+        while (searchNodes.length > 0) {
+            //console.log();
+            //console.log('searchNodes', searchNodes);
+            const capture = searchNodes.pop();
+            //console.log('searchNodes', searchNodes);
+            //console.log('capture', capture);
+            if (!capture) break;
+            //console.log('ss', getBoardFomBin(capture.start), getBoardFomBin(capture.end), getBoardFomBin(capture.captures))
+            //console.log('captureBoard', getBoardFomBin(capture.captures));
 
-        //gets stuck here TODO
-        while (captures.length > 0) {
-            const jumpMove = captures.pop();
-            if (!jumpMove) break;
-
-            const nextJumpMoves =
+            const nextCaptures =
                 this.player === Player.WHITE
-                    ? this.board.getCapturesWhite(jumpMove.end, jumpMove.start & this.board.king)
-                    : this.board.getCapturesBlack(jumpMove.end, jumpMove.start & this.board.king);
+                    ? this.board.getCapturesWhite(capture.end, capture.start & this.board.king)
+                    : this.board.getCapturesBlack(capture.end, capture.start & this.board.king);
+            
+            //console.log('nextCaptures', nextCaptures);
 
-            if (nextJumpMoves.length > 0) {
-                captures.push(
-                ...nextJumpMoves.map(nextJumpMove => ({
-                    start: jumpMove.start,
-                    end: nextJumpMove.end,
-                    captures: nextJumpMove.captures | jumpMove.captures,
+            if (nextCaptures.length > 0) {
+                searchNodes.push(
+                ...nextCaptures.map(nextCapture => ({
+                    start: capture.start,
+                    end: nextCapture.end,
+                    captures: nextCapture.captures | capture.captures,
                 }))
                 );
             } else {
-                captures.push(jumpMove);
+                capturesFound.push(capture);
             }
         }
-        return captures;
+        return capturesFound;
+    }
+
+    getStatus(): Status {
+        if (this.getMoves().length === 0) {
+            console.log(this.getMoves());
+            return this.player === Player.WHITE
+                ? Status.BLACK_WON
+                : Status.WHITE_WON;
+        }
+        return Status.PLAYING;
     }
 
 }
