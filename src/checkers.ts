@@ -1,12 +1,13 @@
 import { Board } from "./board";
 import { Player, Move, Status } from "./types";
-import { getPresentBits, getBoardFomBin } from "./helper";
+import { getPresentBits, getBoardFomBin, printBoard, reduceCaptures } from "./helper";
 
 
 
 export class Checkers {
     readonly board: Board;
     readonly player: Player;
+    //readonly status: number;
 
     //private evaluatedNodeCount: number;
 
@@ -15,29 +16,37 @@ export class Checkers {
     constructor(
         board: Board = new Board(),
         turn: Player = Player.WHITE,
+        //status: number = 0,
         //evaluatedNodeCount: number = 0
     ) {
         this.board = board;
         this.player = turn;
+        //this.status = status;
         ///this.evaluatedNodeCount = 0;
     }
 
     getMoves(): Move[] {
+        //console.log('getMoves', this.moveList);
         //console.log('movelist1', this.moveList);
         if (!this.moveList) {
-          const capturePieces = this.getPiecesWithCaptures();
-          //capturePieces ? console.log('capturePieces', getBoardFomBin(capturePieces)) : console.log('no capturePieces');
-          this.moveList = capturePieces ? this.getCaptureList(capturePieces) : this.getMoveList(this.getPiecesWithMoves());
+            const capturePieces = this.getPiecesWithCaptures();
+            //console.log('capturePieces', getBoardFomBin(capturePieces));
+            //capturePieces ? console.log('capturePieces', getBoardFomBin(capturePieces)) : console.log('no capturePieces');
+            this.moveList = capturePieces ? this.getCaptureList(capturePieces) : this.getMoveList(this.getPiecesWithMoves());
         }
         //console.log('movelist2', this.moveList);
+        //console.log('finished getting moves', this.moveList);
+        //let s = (this.moveList.length == 0) ? (this.player === Player.WHITE ? Status.BLACK_WON : Status.WHITE_WON) : Status.PLAYING;
         return this.moveList;
     }
 
 
     makeMove(move: Move): Checkers {
-        if (!this.getMoves().includes(move)) {
+        let moves = this.getMoves();
+        //const status = (moves.length == 0) ? (this.player === Player.WHITE ? Status.BLACK_WON : Status.WHITE_WON) : Status.PLAYING;
+        if (!moves.includes(move)) {
             console.log('move', move);
-            console.log('moves', this.getMoves());
+            console.log('moves', moves);
             throw new Error('invalid move');
         }
     
@@ -46,6 +55,7 @@ export class Checkers {
         //console.log('before')
         //printBoard(this.board);
         const nextBitboard = this.player === Player.WHITE ? this.board.makeMoveWhite(move) : this.board.makeMoveBlack(move);
+        //const status = this.getStatus();
         const nextPlayerToMove = this.player === Player.WHITE ? Player.BLACK : Player.WHITE;
         //console.log('after')
         //printBoard(nextBitboard);
@@ -58,6 +68,7 @@ export class Checkers {
     }
       
     private getCaptureList(capturePieces: number): Move[] {
+        //console.log('getting capture list');
         return getPresentBits(capturePieces).flatMap(capturePieces => this.getCapturesfromCoord(capturePieces));
     }
     
@@ -69,6 +80,7 @@ export class Checkers {
     }
 
     private getPiecesWithCaptures(): number {
+        //console.log(this.player === Player.WHITE ? 'White' : 'Black');
         return this.player === Player.WHITE
             ? this.board.getCapturePiecesWhite()
             : this.board.getCapturePiecesBlack();
@@ -85,6 +97,9 @@ export class Checkers {
         //console.log('player', this.player)
         //console.log(Player.WHITE)
         //console.log(this.player === Player.WHITE)
+
+        //printBoard(this.board);
+        //console.log('getting captures from coord', getBoardFomBin(start));
         
         const searchNodes: Move[] = this.player === Player.WHITE ? this.board.getCapturesWhite(start): this.board.getCapturesBlack(start);
         const capturesFound: Move[] = [];
@@ -99,15 +114,18 @@ export class Checkers {
             //console.log('searchNodes', searchNodes);
             //console.log('capture', capture);
             if (!capture) break;
-            //console.log('ss', getBoardFomBin(capture.start), getBoardFomBin(capture.end), getBoardFomBin(capture.captures))
+            //console.log('board')
+            //printBoard(this.board);
+            //console.log('ss', getBoardFomBin(capture.start), getBoardFomBin(capture.captures), getBoardFomBin(capture.end))
             //console.log('captureBoard', getBoardFomBin(capture.captures));
 
             const nextCaptures =
                 this.player === Player.WHITE
-                    ? this.board.getCapturesWhite(capture.end, capture.start & this.board.king)
-                    : this.board.getCapturesBlack(capture.end, capture.start & this.board.king);
+                    ? this.board.getCapturesWhite(capture.end, reduceCaptures(capturesFound.concat(capture)), capture.start & this.board.king)
+                    : this.board.getCapturesBlack(capture.end, reduceCaptures(capturesFound.concat(capture)), capture.start & this.board.king);
             
             //console.log('nextCaptures', nextCaptures);
+            
 
             if (nextCaptures.length > 0) {
                 searchNodes.push(
@@ -120,11 +138,19 @@ export class Checkers {
             } else {
                 capturesFound.push(capture);
             }
+
+            //if (searchNodes.length > 20) {
+            //    console.log('searchNodes', searchNodes);
+            //    console.log('capturesFound', capturesFound);
+            //    break;
+            //}
+
         }
+        //console.log('capturesFound', capturesFound);
         return capturesFound;
     }
 
-    getStatus(): Status {
+    /*getStatus(): Status {
         if (this.getMoves().length === 0) {
             console.log(this.getMoves());
             return this.player === Player.WHITE
@@ -132,6 +158,6 @@ export class Checkers {
                 : Status.WHITE_WON;
         }
         return Status.PLAYING;
-    }
+    }*/
 
 }
