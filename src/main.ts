@@ -2,19 +2,39 @@
 //import { printBoard, getRandom, getBoardFomBin, getBoardString, randomGame } from './helper';
 //import { Player, Status } from './types';
 
-import { minimaxGame, randomGame } from './helper';
+import { minimaxGame, randomGame, saveBoardStatsDatabase } from './helper';
+import { BoardDatabase, BoardStats } from './types';
 
-let moveLimit: number = 100;
+let moveLimit: number = 15;
 let games: number = 1;
 let results: number[] = [];
 
+//let boardStatsDatabase: BoardDatabase = getBoardStatsDatabase();
+
 for (let i=0; i < games; i++) {
-    //results.push(randomGame(moveLimit));
     results.push(minimaxGame(moveLimit));
+    //results.push(minimaxGame(moveLimit));
 }
 
 console.log(results);
 
+//saveBoardStatsDatabase();
+
+/*
+var fs = require('fs');
+let bsd = boardStatsDatabase
+console.log(bsd)
+let json = JSON.stringify(bsd);
+console.log(json)
+let parsed = JSON.parse(json);
+console.log(parsed)
+console.log(typeof parsed)
+console.log(typeof parsed['12w8012b'])
+let test: BoardStats = parsed['12w8012b'];
+console.log(test)
+console.log(typeof test)
+fs.writeFile('myjsonfile.json', json, 'utf8', function (err: any) { if (err) throw err; console.log('complete'); });
+*/
 
 /*
 let checkers = new Checkers();

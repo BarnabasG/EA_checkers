@@ -1,0 +1,8 @@
+// tsconfig.json
+{
+    "compilerOptions": {
+      "module": "commonjs",
+      "resolveJsonModule": true,
+      "esModuleInterop": true
+    }
+}

@@ -15,8 +15,27 @@ export enum Status {
     BLACK_WON,
 }
 
-export type BoardStats = {
-    men: number;
+export interface BoardStats {
+    [key: string]:  number;
+}
+
+export type WeightSet = {
+    weights:  BoardStats;
+    score: number;
+}
+
+export interface PopulationSet {
+    [key: string]:  WeightSet;
+    
+}
+
+export interface BoardDatabase {
+    [key: string]:  BoardStats;
+    //[key: string]:  BoardStats;
+}
+
+/*export type BoardStats = {
+    men: : number;
     kings: number;
     avrDist: number;
     backline: number;
@@ -27,4 +46,4 @@ export type BoardStats = {
     centre8: number;
     defended: number;
     attacks: number;
-}
+}*/

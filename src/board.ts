@@ -26,8 +26,8 @@
 */
 
 
-import { getAvrDist, getPieceCount } from './helper';
-import { BoardStats, Move, Player } from './types';
+import { boardStatsDatabase, generateKey, getAvrDist, getBoardFomBin, getBoardString, getPieceCount, printBoard, roundTo } from './helper';
+import { BoardDatabase, BoardStats, Move } from './types';
 
 const BIN: Record<number, number> = [];
 BIN[0] = 1;
@@ -42,9 +42,11 @@ const WHITE_INIT = 0b0000_0000_0000_0000_0000_1111_1111_1111;
 const BLACK_INIT = 0b1111_1111_1111_0000_0000_0000_0000_0000;
 const KING_INIT = 0b0000_0000_0000_0000_0000_0000_0000_0000;
 
-/*
-const test = 0b1000_0000_0000_0000_0000_0000_1000_0000;
-console.log(test) //2147483776
+
+const test = 0b0000_0000_0000_0000_0000_0000_0000_0100;
+console.log(test >> 4) //-67108860
+console.log(test >>> 4) //-67108860
+/*console.log(test) //2147483776
 console.log(test >> 0) //-2147483520
 console.log(test >>> 5) //-67108860
 // expected output: 67108868
@@ -75,6 +77,9 @@ const EDGES = BIN[3] | BIN[4] | BIN[11] | BIN[12] | BIN[19] | BIN[20] | BIN[27] 
 const CENTRE2 = BIN[14] | BIN[17];
 const CENTRE4 = BIN[13] | BIN[14] | BIN[17] | BIN[18];
 const CENTRE8 = BIN[9] | BIN[10] |BIN[13] | BIN[14] | BIN[17] | BIN[18] | BIN[21] | BIN[22];
+
+//let defendableEdges: number = EDGES - BIN[3]
+//console.log(getBoardFomBin(defendableEdges))
 
 
 
@@ -374,39 +379,97 @@ export class Board {
     }
 
     getDefendedWhite(): number {
-        return 0
-        //(start >>> 4) & this.white
+        let defended: number = 0
+
+        defended |= this.white & (EDGES | KINGROW_BLACK | KINGROW_WHITE)
+
+        let temp = (this.white << 4) & this.white
+        temp &= (((this.white & LEFT5) << 5) & temp) | (((this.white & LEFT3) << 3) & temp)
+        defended |= temp
+
+        //console.log('def white',getBoardFomBin(defended))
+
+        return getPieceCount(defended)
     }
 
     getDefendedBlack(): number {
-        return 0
+        let defended: number = 0
+
+        defended |= this.black & (EDGES | KINGROW_BLACK | KINGROW_WHITE)
+
+        let temp = (this.black >>> 4) & this.black
+        temp &= (((this.black & RIGHT5) >>> 5) & temp) | (((this.black & RIGHT3) >> 3) & temp)
+        defended |= temp
+
+        //console.log('def black',getBoardFomBin(defended))
+
+        return getPieceCount(defended)
     }
 
+    // attacks should include defended pieces but not uncapturable pieces
     getAttacksWhite(): number {
-        return 0
+        let attacks: number = 0
+        let attackable = this.black & ~(EDGES | KINGROW_BLACK | KINGROW_WHITE)
+
+        //console.log('attackable',getBoardFomBin(attackable))
+
+        attacks |= attackable >> 4 & this.white
+        //console.log('1',getBoardFomBin(attacks))
+        //console.log('2',getBoardFomBin(((attackable & RIGHT3) >> 3 | (attackable & RIGHT5) >>> 5) & this.white))
+        attacks |= ((attackable & RIGHT3) >> 3 | (attackable & RIGHT5) >>> 5) & this.white
+
+        //console.log('att white',getBoardFomBin(attacks))
+
+        return getPieceCount(attacks)
     }
 
     getAttacksBlack(): number {
-        return 0
+        let attacks: number = 0
+        let attackable = this.white & ~(EDGES | KINGROW_BLACK | KINGROW_WHITE)
+
+        attacks |= attackable << 4 & this.black
+        attacks |= ((attackable & LEFT3) << 3 | (attackable & LEFT5) << 5) & this.black
+
+        //console.log('att black',getBoardFomBin(attacks))
+
+        return getPieceCount(attacks)
     }
 
-    /**/
-    getboardStats(): BoardStats {
-        return {
-            men: getPieceCount(this.white) - getPieceCount(this.black),
-            kings: getPieceCount(this.whiteKing) - getPieceCount(this.blackKing),
-            avrDist: getAvrDist(this.white, Player.WHITE) - getAvrDist(this.black, Player.BLACK),
-            //backline: getBackline(this.white, Player.WHITE) - getBackline(this.black, Player.BLACK),
-            backline: getPieceCount(this.white & KINGROW_BLACK) - getPieceCount(this.black & KINGROW_WHITE),
-            corners: getPieceCount(this.white & CORNERS) - getPieceCount(this.black & CORNERS),
-            edges: getPieceCount(this.white & EDGES) - getPieceCount(this.black & EDGES),
-            centre2: getPieceCount(this.white & CENTRE2) - getPieceCount(this.black & CENTRE2),
-            centre4: getPieceCount(this.white & CENTRE4) - getPieceCount(this.black & CENTRE4),
-            centre8: getPieceCount(this.white & CENTRE8) - getPieceCount(this.black & CENTRE8),
-            defended: getDefended(this.white) - getDefended(this.black),
-            attacks: this.getAttacks(this.white) - getAttacks(this.black)
-        };
+    getBoardStats(): BoardStats {
+        //console.log(getAvrDist(this.white), getAvrDist(this.black), 7 - getAvrDist(this.black), getAvrDist(this.white) - (7 - getAvrDist(this.black)))
+        //let lookupStats = boardLookup(this)
 
+        //let key = getBoardString(this.white) + getBoardString(this.black) + getBoardString(this.king);
+        //printBoard(this)
+        let key = generateKey(this.white, this.black, this.blackKing);
+        //console.log('key', key)
+        //console.log('database', boardStatsDatabase)
+        if (key in boardStatsDatabase) {
+            //console.log('database hit')
+            //console.log(JSON.parse(boardStatsDatabase[key]))
+            //console.log(boardStatsDatabase[key])
+            //return JSON.parse(boardStatsDatabase[key]);
+            return boardStatsDatabase[key];
+        } else {
+            //console.log('database miss')
+            let stats: BoardStats = {
+                'pieces': getPieceCount(this.white) - getPieceCount(this.black),
+                'kings': getPieceCount(this.whiteKing) - getPieceCount(this.blackKing),
+                'avrDist': roundTo(getAvrDist(this.white) - (7 - getAvrDist(this.black)), 2),
+                'backline': getPieceCount(this.white & KINGROW_BLACK) - getPieceCount(this.black & KINGROW_WHITE),
+                'corners': getPieceCount(this.white & CORNERS) - getPieceCount(this.black & CORNERS),
+                'edges': getPieceCount(this.white & EDGES) - getPieceCount(this.black & EDGES),
+                'centre2': getPieceCount(this.white & CENTRE2) - getPieceCount(this.black & CENTRE2),
+                'centre4': getPieceCount(this.white & CENTRE4) - getPieceCount(this.black & CENTRE4),
+                'centre8': getPieceCount(this.white & CENTRE8) - getPieceCount(this.black & CENTRE8),
+                'defended': this.getDefendedWhite() - this.getDefendedBlack(),
+                'attacks': this.getAttacksWhite() - this.getAttacksBlack()
+            }
+            //boardStatsDatabase[key] = JSON.stringify(stats);
+            boardStatsDatabase[key] = stats;
+            //console.log(stats)
+            return stats;
+        }
     }
 
     
@@ -415,10 +478,46 @@ export class Board {
 
 }
 
-/*
-let board = new Board();
-console.log(board);
-let x = board.getMovablePiecesWhite();
+
+//let board = new Board();
+//printBoard(board);
+//generateKey(board.white, board.black, board.king)
+
+
+
+
+//console.log(board);
+
+/*let board = new Board();
+printBoard(board);
+const s = performance.now();
+board.getBoardStats();
+const e = performance.now();
+console.log('test1', e - s); // 0.766199991106987
+
+const s2 = performance.now();
+for (let i = 0; i < 100; i++) {
+    board.getBoardStats();
+}
+//board.getBoardStats();
+const e2 = performance.now();
+console.log('test2', (e2 - s2)/100); // 0.01799999177455902
+*/
+
+
+//const s3 = performance.now();
+//const e3 = performance.now();
+//console.log(boardStatsDatabase['12w8012b'])
+//console.log('test3', e3 - s3);
+
+//let json = JSON.stringify(boardStatsDatabase['12w8012b'])
+//console.log(json)
+//console.log(JSON.parse(json))
+
+
+
+
+/*let x = board.getMovablePiecesWhite();
 console.log(getBoardFomBin(x));
 x = board.getMovablePiecesBlack();
 console.log(getBoardFomBin(x));

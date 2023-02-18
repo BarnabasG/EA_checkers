@@ -1,7 +1,7 @@
 import { Board } from "./board";
 import { Checkers } from "./checkers";
-import { getPieceCount } from "./helper";
-import { Move, Player } from "./types";
+import { getPieceCount, printBoard } from "./helper";
+import { BoardStats, Move, Player, PopulationSet } from "./types";
 
 
 export function minimax(checkers: Checkers, depth: number) {
@@ -54,8 +54,8 @@ function quiescenceSearch(checkers: Checkers, alpha: number, beta: number) {
 }
 
 //function evaluateBoard(checkers: Checkers, maximizingPlayer: boolean): number {
-function evaluateBoard(checkers: Checkers): number {
-    const player = checkers.player === Player.WHITE
+export function evaluateBoard(checkers: Checkers): number {
+    /*const player = checkers.player === Player.WHITE
         ? checkers.board.white
         : checkers.board.black;
     const opponent = checkers.player === Player.WHITE
@@ -67,10 +67,39 @@ function evaluateBoard(checkers: Checkers): number {
     evaluation += getPieceCount(player);
     evaluation += getPieceCount(player & checkers.board.king);
     evaluation -= getPieceCount(opponent);
-    evaluation -= getPieceCount(opponent & checkers.board.king);
+    evaluation -= getPieceCount(opponent & checkers.board.king);*/
 
-    return evaluation;
+    let score: number = 0;
+    const pieceCount: number = getPieceCount(checkers.board.white | checkers.board.black);
+    const stats: BoardStats = checkers.board.getBoardStats();
+    let index: number = 0;
+    //checkers.updateBoardStats(stats);
+
+    printBoard(checkers.board);
+    console.log('stats', stats)
+    console.log('bestBoard', checkers.bestBoard)
+
+    for (const key in stats) {
+        index += 1;
+        console.log('\nindex',index)
+        console.log(key, stats[key]);
+        //TODO: compute evaluation from value/best value * weight
+        if (stats[key] === 0) continue;
+        console.log('1', stats[key] / checkers.bestBoard[key])
+        const multiplier: number = stats[key] / checkers.bestBoard[key];
+        if (!Number.isFinite(multiplier)) continue;
+        console.log('2', multiplier)
+        score += 1 * multiplier //weights[k][0] * multiplier;
+        console.log('3', score)
+    }
+    score /= index;
+    if (!Number.isFinite(score)) score = 0;
+    score *= (24 / pieceCount);
+
+    return score;//evaluation;
 }
+
+
 
 
 /*
@@ -120,5 +149,8 @@ export function minimax1(checkers: Checkers, depth: number, alpha: number, beta:
     }
 }
 */
+
+
+
 
 
