@@ -1,17 +1,18 @@
-import { minimax, evaluateBoard } from "./ai";
-import { Board } from "./board";
-import { Checkers } from "./checkers";
+//import { minimax, evaluateBoard } from "./ai";
+//import { Board } from "./board";
+//import { Checkers } from "./checkers";
 import { BoardStats, Player, Status, BoardDatabase } from "./types";
 import boardDB from '../boardDB.json';
 
 
-console.log(boardDB)
+//console.log(boardDB)
 
 
 
 export var boardStatsDatabase: BoardDatabase = boardDB;
-console.log('length before', Object.keys(boardStatsDatabase).length);
-console.log(boardStatsDatabase);
+
+//console.log('length before', Object.keys(boardStatsDatabase).length);
+//console.log(boardStatsDatabase);
 
 
 /*export function getBoardStatsDatabase() {
@@ -35,9 +36,9 @@ console.log(boardStatsDatabase);
 
 export function saveBoardStatsDatabase() {
     console.log('saveBoardStatsDatabase');
-    var fsSave = require('fs');
+    var fs = require('fs');
     let json = JSON.stringify(boardStatsDatabase);
-    fsSave.writeFile('boardDB.json', json, 'utf8', function (err: any) { if (err) throw err; console.log('complete'); });
+    fs.writeFile('boardDB.json', json, 'utf8', function (err: any) { if (err) throw err; console.log('complete'); });
     console.log('after', boardStatsDatabase);
 }
 
@@ -81,32 +82,32 @@ export function getPresentBits(value: number): number[] {
     return bitArr;
   }
 
-export function printBoard(board: Board) {
+export function printBoard(white: number, black: number, king: number) {
 
     const arr: string[] = Array(32).fill('-');
 
-    let whiteMen = getBoardString(board.white ^ board.king).split('')
+    let whiteMen = getBoardString(white ^ king).split('')
     for (let i=0; i < whiteMen.length; i++) {
         if (whiteMen[i] === '1') {
             arr[i] = 'w';
         }
     }
 
-    let blackMen = getBoardString(board.black ^ board.king).split('')
+    let blackMen = getBoardString(black ^ king).split('')
     for (let i=0; i < blackMen.length; i++) {
         if (blackMen[i] === '1') {
             arr[i] = 'b';
         }
     }
 
-    let whiteKing = getBoardString(board.white & board.king).split('')
+    let whiteKing = getBoardString(white & king).split('')
     for (let i=0; i < whiteKing.length; i++) {
         if (whiteKing[i] === '1') {
             arr[i] = 'W';
         }
     }
 
-    let blackKing = getBoardString(board.black & board.king).split('')
+    let blackKing = getBoardString(black & king).split('')
     for (let i=0; i < blackKing.length; i++) {
         if (blackKing[i] === '1') {
             arr[i] = 'B';
@@ -159,35 +160,6 @@ console.log(getBoardFomBin(67108864))*/
 // TODO: issue is with square 31 (top left) being -2147483648 in binary rather than 2147483648
 // This is find until shhift also returns a negative number
 
-export function randomGame(moveLimit: number = 100) {
-    //boardStatsDatabase = getBoardStatsDatabase();
-    let checkers = new Checkers();
-    let status = 0;
-    let index = 0;
-
-    printBoard(checkers.board);
-    console.log(checkers.board.getBoardStats())
-
-    while (index <= moveLimit) {
-        //checkers.bestBoard = checkers.updateBoardStats();
-        let moves = checkers.getMoves();
-        status = (moves.length == 0) ? (checkers.player === Player.WHITE ? Status.BLACK_WON : Status.WHITE_WON) : Status.PLAYING;
-        if (status !== 0) {
-            console.log('Game Over', index, status, Status[status]);
-            return status;
-        }
-        checkers = checkers.makeMove(getRandom(moves));
-        console.log('Move', index, checkers.player, Status[status]);
-        index++;
-        printBoard(checkers.board);
-        console.log(checkers.board.getBoardStats())
-        console.log('eval', evaluateBoard(checkers))
-    }
-    console.log('Game Over (move limit reached)', index, status, Status[status]);
-    saveBoardStatsDatabase();
-    return status;
-}
-
 export function getPieceCount(value: number): number {
     let count = 0;
   
@@ -197,30 +169,6 @@ export function getPieceCount(value: number): number {
     }
   
     return count;
-}
-
-export function minimaxGame(moveLimit: number = 100) {
-    //boardStatsDatabase = getBoardStatsDatabase();
-    let checkers = new Checkers();
-    let status = 0;
-    let index = 0;
-
-    while (index <= moveLimit) {
-        //checkers.bestBoard = checkers.updateBoardStats();
-        let moves = checkers.getMoves();
-        status = (moves.length == 0) ? (checkers.player === Player.WHITE ? Status.BLACK_WON : Status.WHITE_WON) : Status.PLAYING;
-        if (status !== 0) {
-            console.log('Game Over', index, status, Status[status]);
-            return status;
-        }
-        let move = minimax(checkers, 3);
-        //console.log(move)
-        checkers = checkers.makeMove(move);
-        index++;
-    }
-    //console.log('Game Over (move limit reached)', index, status, Status[status]);
-    saveBoardStatsDatabase();
-    return status;
 }
 
 export function getAvrDist(value: number): number {
@@ -256,11 +204,6 @@ export function getInitBoardStats(initialiser: number = 0): BoardStats {
     }
 }
 
-//export function randomiseBoardStats(stats: BoardStats): BoardStats {
-//    for (let key in stats) stats[key] = randomNeg();
-//    return stats
-//}
-
 export function generateKey(white: number, black: number, king: number): string {
     let key = '';
     for (let index = 0; index < 32; index++) {
@@ -294,14 +237,54 @@ export function generateKey(white: number, black: number, king: number): string 
     return key;
 }
 
-export function compete(index1: number, index2: number) {
-    
 
+export function getPopulationMatches(popSize: number, competition: number = 0): number[][] {
+    //if (competition === 0) {
+    return permutations([...Array(popSize).keys()],2);
+    //}
+}
 
+function permutations(arr: number[], len: number = arr.length): number[][] {
+	
+    len = len || arr.length;
+    if(len > arr.length) len = arr.length;
+    const results = [];
+  
+    function eliminate(el: number, arr: number[]) {
+        let i = arr.indexOf(el);
+        arr.splice(i, 1);
+        return arr;
+    }
+  
+    function perms(arr: number[], len: number, prefix = []) {
+        if (prefix.length === len) {
+            results.push(prefix);
+        } else {
+            for (let elem of arr) {
+                let newPrefix = [...prefix];
+                newPrefix.push(elem);
+                let newRest = null;
+                newRest = eliminate(elem, [...arr]);
+                perms(newRest, len, newPrefix);
+            }
+        }
+        return;
+    }
+    perms(arr, len);
+
+    return results;
 }
 
 
-
+/*import { Checkers } from "./checkers";
+let checkers = new Checkers();
+console.log(checkers.population)
+console.log('---')
+console.log(checkers.population.population)
+console.log('---')
+console.log(checkers.population.population[0])
+console.log('---')
+console.log(checkers.population.population[0]['weights'])*/
 
 
 /*export function boardLookup(board: Board): BoardStats | undefined {

@@ -2,11 +2,18 @@
 //import { printBoard, getRandom, getBoardFomBin, getBoardString, randomGame } from './helper';
 //import { Player, Status } from './types';
 
-import { minimaxGame, randomGame, saveBoardStatsDatabase } from './helper';
-import { BoardDatabase, BoardStats } from './types';
+
+//import { minimaxGame, randomGame, saveBoardStatsDatabase } from './helper';
+//import { saveBoardStatsDatabase } from './helper';
+//import { BoardDatabase, BoardStats } from './types';
+
+import { minimaxGame, train } from './run';
+
+
+//npx madge --circular --extensions ts ./
 
 let moveLimit: number = 15;
-let games: number = 1;
+let games: number = 0;
 let results: number[] = [];
 
 //let boardStatsDatabase: BoardDatabase = getBoardStatsDatabase();
@@ -17,6 +24,8 @@ for (let i=0; i < games; i++) {
 }
 
 console.log(results);
+
+train(10)
 
 //saveBoardStatsDatabase();
 
