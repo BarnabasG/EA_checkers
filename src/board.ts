@@ -436,6 +436,11 @@ export class Board {
     }
 
     getBoardStats(): BoardStats {
+
+
+        //TODO: could be more efficient to save white layouts and black layouts seperately as piece layouts, then can make seperate lookups
+
+
         //console.log(getAvrDist(this.white), getAvrDist(this.black), 7 - getAvrDist(this.black), getAvrDist(this.white) - (7 - getAvrDist(this.black)))
         //let lookupStats = boardLookup(this)
 

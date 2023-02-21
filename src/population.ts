@@ -24,10 +24,6 @@ export class Population {
         return
     }
 
-
-
-
-
 }
 
 
@@ -44,8 +40,8 @@ function generateInitialPopulation(size: number): PopulationSet {
 }
 
 
-let p = new Population(10);
-console.log(p.size);
-console.log(p.population);
-p.randomiseWeights();
-console.log(p.population);
+//let p = new Population(10);
+//console.log(p.size);
+//console.log(p.population);
+//p.randomiseWeights();
+//console.log(p.population);

@@ -1,5 +1,5 @@
 import { Checkers } from "./checkers";
-import { getPieceCount, printBoard } from "./helper";
+import { getBoardFomBin, getPieceCount, printBoard } from "./helper";
 import { BoardStats, Move, Player, PopulationSet } from "./types";
 
 
@@ -7,10 +7,12 @@ export function minimax(checkers: Checkers, depth: number, weights: BoardStats):
     let bestScore = Number.NEGATIVE_INFINITY;
     let bestMove: Move = { start: 0, end: 0, captures: 0 };
   
-    for (const move of checkers.getMoves()) {
+    for (const move of checkers.getMoves()) { 
         const next = checkers.makeMove(move);
         const evaluation = -alphaBetaSearch(next, depth - 1, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, weights);
+        //const evaluation = -alphaBetaSearch(next, depth - 1, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, weights);
         if (evaluation >= bestScore) {
+            //console.log('new best move', evaluation)
             bestScore = evaluation;
             bestMove = move;
         }
@@ -20,6 +22,7 @@ export function minimax(checkers: Checkers, depth: number, weights: BoardStats):
 
 
 function alphaBetaSearch(checkers: Checkers, depth: number, alpha: number, beta: number, weights: BoardStats) {
+
     if (depth === 0) return quiescenceSearch(checkers, alpha, beta, weights);
   
     for (const move of checkers.getMoves()) {
@@ -34,6 +37,7 @@ function alphaBetaSearch(checkers: Checkers, depth: number, alpha: number, beta:
 
 
 function quiescenceSearch(checkers: Checkers, alpha: number, beta: number, weights: BoardStats) {
+
     const evaluation = evaluateBoard(checkers, weights);
   
     if (evaluation >= beta) return beta;
@@ -58,30 +62,19 @@ export function evaluateBoard(checkers: Checkers, weights: BoardStats): number {
     const pieceCount: number = getPieceCount(checkers.board.white | checkers.board.black);
     const stats: BoardStats = checkers.board.getBoardStats();
     let index: number = 0;
-    //checkers.updateBoardStats(stats);
-
-    printBoard(checkers.board.white, checkers.board.black, checkers.board.king);
-    console.log('stats', stats)
-    console.log('bestBoard', checkers.bestBoard)
 
     for (const key in stats) {
         index += 1;
-        console.log('\nindex',index)
-        console.log(key, stats[key], weights[key]);
-        //TODO: compute evaluation from value/best value * weight
         if (stats[key] === 0) continue;
-        console.log('1', stats[key] / checkers.bestBoard[key])
         const multiplier: number = stats[key] / checkers.bestBoard[key];
         if (!Number.isFinite(multiplier)) continue;
-        console.log('2', multiplier)
-        score += weights[key] * multiplier //weights[k][0] * multiplier;
-        console.log('3', score)
+        score += weights[key] * multiplier
     }
     score /= index;
     if (!Number.isFinite(score)) score = 0;
     score *= (24 / pieceCount);
 
-    return score;//evaluation;
+    return score;
 }
 
 

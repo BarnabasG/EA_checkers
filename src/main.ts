@@ -13,19 +13,19 @@ import { minimaxGame, train } from './run';
 //npx madge --circular --extensions ts ./
 
 let moveLimit: number = 15;
-let games: number = 0;
+//let games: number = 0;
 let results: number[] = [];
 
 //let boardStatsDatabase: BoardDatabase = getBoardStatsDatabase();
 
-for (let i=0; i < games; i++) {
-    results.push(minimaxGame(moveLimit));
+//for (let i=0; i < games; i++) {
+//    results.push(minimaxGame(moveLimit));
     //results.push(minimaxGame(moveLimit));
-}
+//}
 
-console.log(results);
+//console.log(results);
 
-train(10)
+train(10, 3)
 
 //saveBoardStatsDatabase();
 

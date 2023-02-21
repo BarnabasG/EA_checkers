@@ -1,7 +1,7 @@
 import { minimax, evaluateBoard } from "./ai";
 import { Checkers } from "./checkers";
 import { BoardStats, Player, Status } from "./types";
-import { saveBoardStatsDatabase, getPopulationMatches } from "./helper";
+import { saveBoardStatsDatabase, getPopulationMatches, printBoard } from "./helper";
 import { Population } from "./population";
 
 
@@ -12,27 +12,57 @@ export function compete(whiteWeights: BoardStats, blackWeights: BoardStats, move
     let weights: BoardStats;
 
     while (moveIndex <= moveLimit) {
+        //console.log('move', moveIndex, checkers.player === Player.WHITE ? 'white' : 'black')
         let moves = checkers.getMoves();
         status = (moves.length == 0) ? (checkers.player === Player.WHITE ? Status.BLACK_WON : Status.WHITE_WON) : Status.PLAYING;
         if (status !== 0) {
-            console.log('Game Over', moveIndex, status, Status[status]);
+            //printBoard(checkers.board.white, checkers.board.black, checkers.board.king);
+            //console.log('Game Over', moveIndex, status, Status[status]);
             return status;
         }
+        //console.log(`${moves.length} moves found (turn ${moveIndex})`)
         //weights = checkers.player === Player.WHITE ? checkers.population.population[index1]['weights'] : checkers.population.population[index2]['weights'];
         weights = checkers.player === Player.WHITE ? whiteWeights : blackWeights;
         let move = minimax(checkers, depth, weights)
         checkers = checkers.makeMove(move);
+        //console.log(move)
+        //printBoard(checkers.board.white, checkers.board.black, checkers.board.king);
         moveIndex++;
     }
+
+    return 0;
 }
-export function train(populationSize: number, moveLimit: number = 100, depth: number = 3) {
+
+//let population = new Population(10);
+//compete(population.population[0]['weights'], population.population[1]['weights'], 100, 3)
+
+
+export function train(populationSize: number, depth: number = 3, moveLimit: number = 100) {
     
     const population = new Population(populationSize);
-
+    population.randomiseWeights();
     const matches = getPopulationMatches(populationSize);
+    //let results: number[] = []; 
 
-    console.log(matches)
+    //console.log(matches)
+
+    for (let i = 0; i < matches.length; i++) {
+        let index1 = matches[i][0];
+        let index2 = matches[i][1];
+        let status = compete(population.population[index1]['weights'], population.population[index2]['weights'], moveLimit, depth);
+        if (status === 1) {
+            population.population[index1]['score'] += 1;
+        } else if (status === 2) {
+            population.population[index2]['score'] += 1;
+        } else if (status === 0) {
+            population.population[index1]['score'] += 0.5;
+            population.population[index2]['score'] += 0.5;
+        }
+    }
     
+    for (let i = 0; i < population.size; i++) {
+        console.log(i, population.population[i]['score'])
+    }
 
 }
 

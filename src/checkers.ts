@@ -56,12 +56,12 @@ export class Checkers {
     }
 
     private updateBoardStats(): BoardStats {
-        console.log('updateBoardStats')
+        //console.log('updateBoardStats')
         let newBestBoard = this.board.getBoardStats();
-        console.log('best', this.bestBoard)
-        console.log('current', newBestBoard)
+        //console.log('best', this.bestBoard)
+        //console.log('current', newBestBoard)
         for (const key in newBestBoard) newBestBoard[key] = Math.max(Math.abs(newBestBoard[key]), this.bestBoard[key]);
-        console.log('after', newBestBoard)
+        //console.log('after', newBestBoard)
         return newBestBoard;
     }
 
@@ -101,9 +101,17 @@ export class Checkers {
             if (!capture) break;
 
             const nextCaptures =
-                this.player === Player.WHITE
-                    ? this.board.getCapturesWhite(capture.end, reduceCaptures(capturesFound.concat(capture)), capture.start & this.board.king)
-                    : this.board.getCapturesBlack(capture.end, reduceCaptures(capturesFound.concat(capture)), capture.start & this.board.king);      
+                (this.player === Player.WHITE
+                    ? this.board.getCapturesWhite(capture.end, capture.captures, capture.start & this.board.king)
+                    : this.board.getCapturesBlack(capture.end, capture.captures, capture.start & this.board.king))
+                    //.filter(nextCapture => !(nextCapture.captures & capture.captures));
+                    //? this.board.getCapturesWhite(capture.end, reduceCaptures(capturesFound.concat(capture)), capture.start & this.board.king)
+                    //: this.board.getCapturesBlack(capture.end, reduceCaptures(capturesFound.concat(capture)), capture.start & this.board.king);
+            
+            
+            //filter out captures of pieces that have already been captured
+            //nextCaptures.filter(nextCapture => !(nextCapture.captures & capture.captures))
+                         
 
             if (nextCaptures.length > 0) {
                 searchNodes.push(
