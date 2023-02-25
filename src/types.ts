@@ -25,13 +25,12 @@ export type WeightSet = {
 }
 
 export interface PopulationSet {
-    [key: string]:  WeightSet;
+    [key: number]:  WeightSet;
     
 }
 
 export interface BoardDatabase {
     [key: string]:  BoardStats;
-    //[key: string]:  BoardStats;
 }
 
 /*export type BoardStats = {

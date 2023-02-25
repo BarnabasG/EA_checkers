@@ -27,13 +27,16 @@
 
 
 import { boardStatsDatabase, generateKey, getAvrDist, getBoardFomBin, getBoardString, getPieceCount, printBoard, roundTo } from './helper';
-import { BoardDatabase, BoardStats, Move } from './types';
+import { BoardDatabase, BoardStats, Move, Player } from './types';
 
 const BIN: Record<number, number> = [];
 BIN[0] = 1;
 for (let i=1; i<32; i++) {
     BIN[i] = BIN[i-1] * 2;
 }
+
+export var DBHits = 0;
+export var DBMisses = 0; 
 
 //console.log(BIN);
 //console.log(BIN[31]);
@@ -435,18 +438,14 @@ export class Board {
         return getPieceCount(attacks)
     }
 
-    getBoardStats(): BoardStats {
-
+    getBoardStats1(): BoardStats {
 
         //TODO: could be more efficient to save white layouts and black layouts seperately as piece layouts, then can make seperate lookups
 
-
-        //console.log(getAvrDist(this.white), getAvrDist(this.black), 7 - getAvrDist(this.black), getAvrDist(this.white) - (7 - getAvrDist(this.black)))
-        //let lookupStats = boardLookup(this)
-
-        //let key = getBoardString(this.white) + getBoardString(this.black) + getBoardString(this.king);
-        //printBoard(this)
-        let key = generateKey(this.white, this.black, this.blackKing);
+        //let key = generateKey1(this.white, this.black, this.king);
+        let key = 0
+        
+        
         //console.log('key', key)
         //console.log('database', boardStatsDatabase)
         if (key in boardStatsDatabase) {
@@ -454,6 +453,7 @@ export class Board {
             //console.log(JSON.parse(boardStatsDatabase[key]))
             //console.log(boardStatsDatabase[key])
             //return JSON.parse(boardStatsDatabase[key]);
+            DBHits++;
             return boardStatsDatabase[key];
         } else {
             //console.log('database miss')
@@ -471,14 +471,79 @@ export class Board {
                 'attacks': this.getAttacksWhite() - this.getAttacksBlack()
             }
             //boardStatsDatabase[key] = JSON.stringify(stats);
-            boardStatsDatabase[key] = stats;
+
+            boardStatsDatabase[key] = stats
+
             //console.log(stats)
+            DBMisses++;
             return stats;
         }
     }
 
-    
 
+    /**/
+    getBoardStats(): BoardStats {
+
+        //TODO: could be more efficient to save white layouts and black layouts seperately as piece layouts, then can make seperate lookups
+
+        let whiteKey = generateKey(this.white, this.whiteKing);
+        let blackKey = generateKey(this.black, this.blackKing);
+
+        let whiteStats: BoardStats;
+        if (whiteKey in boardStatsDatabase) {
+            whiteStats = boardStatsDatabase[whiteKey];
+            DBHits++;
+        } else {
+            whiteStats = this.getBoardStatsForColour(this.white, this.whiteKing, Player.WHITE);
+            boardStatsDatabase[whiteKey] = whiteStats;
+            DBMisses++;
+        }
+
+        let blackStats: BoardStats;
+        if (blackKey in boardStatsDatabase) {
+            blackStats = boardStatsDatabase[blackKey];
+            DBHits++;
+        } else {
+            blackStats = this.getBoardStatsForColour(this.black, this.blackKing, Player.BLACK);
+            boardStatsDatabase[blackKey] = blackStats;
+            DBMisses++;
+        }
+
+        return this.getBoardStatDifferece(whiteStats, blackStats);
+
+    }
+
+    getBoardStatsForColour(value: number, king: number, player: Player): BoardStats {
+        return {
+            'pieces': getPieceCount(value),
+            'kings': getPieceCount(king),
+            'avrDist': getAvrDist(value),
+            'backline': getPieceCount(value & KINGROW_BLACK),
+            'corners': getPieceCount(value & CORNERS),
+            'edges': getPieceCount(value & EDGES),
+            'centre2': getPieceCount(value & CENTRE2),
+            'centre4': getPieceCount(value & CENTRE4),
+            'centre8': getPieceCount(value & CENTRE8),
+            'defended': player === Player.WHITE ? this.getDefendedWhite() : this.getDefendedBlack(),
+            'attacks': player === Player.WHITE ? this.getAttacksWhite() : this.getAttacksBlack()
+        }
+    }
+
+    getBoardStatDifferece(statsWhite: BoardStats, statsBlack: BoardStats): BoardStats {
+        return {
+            'pieces': statsWhite.pieces - statsBlack.pieces,
+            'kings': statsWhite.kings - statsBlack.kings,
+            'avrDist': roundTo(statsWhite.avrDist - (7 - statsBlack.avrDist), 2),
+            'backline': statsWhite.backline - statsBlack.backline,
+            'corners': statsWhite.corners - statsBlack.corners,
+            'edges': statsWhite.edges - statsBlack.edges,
+            'centre2': statsWhite.centre2 - statsBlack.centre2,
+            'centre4': statsWhite.centre4 - statsBlack.centre4,
+            'centre8': statsWhite.centre8 - statsBlack.centre8,
+            'defended': statsWhite.defended - statsBlack.defended,
+            'attacks': statsWhite.attacks - statsBlack.attacks
+        }
+    }
 
 
 }

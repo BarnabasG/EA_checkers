@@ -5,7 +5,7 @@ import { getPresentBits, getBoardFomBin, printBoard, reduceCaptures, getInitBoar
 
 
 
-export class Checkers {
+export class CheckersGame {
     readonly board: Board;
     readonly player: Player;
     readonly bestBoard: BoardStats;
@@ -45,14 +45,14 @@ export class Checkers {
         return this.moveList;
     }
 
-    makeMove(move: Move): Checkers {
+    makeMove(move: Move): CheckersGame {
         if (!this.getMoves().includes(move)) throw new Error('invalid move');
         if (move.captures) getBoardFomBin(move.captures)
         const nextBitboard = this.player === Player.WHITE ? this.board.makeMoveWhite(move) : this.board.makeMoveBlack(move);
         const nextPlayerToMove = this.player === Player.WHITE ? Player.BLACK : Player.WHITE;
         const nextBestBoard = this.updateBoardStats();
     
-        return new Checkers(nextBitboard, nextPlayerToMove, nextBestBoard);
+        return new CheckersGame(nextBitboard, nextPlayerToMove, nextBestBoard);
     }
 
     private updateBoardStats(): BoardStats {

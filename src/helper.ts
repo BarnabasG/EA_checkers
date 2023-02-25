@@ -2,14 +2,41 @@
 //import { Board } from "./board";
 //import { Checkers } from "./checkers";
 import { BoardStats, Player, Status, BoardDatabase } from "./types";
-import boardDB from '../boardDB.json';
+
+//let s1 = performance.now();
+//import boardDB from '../boardDB_6.json';
+//import boardDB from '../positionStatDB.json';
+//console.log('JSON loaded in', performance.now() - s1, 'ms')
+
+
+//import boardDB from '../positionStatDB.json';
+
 
 
 //console.log(boardDB)
 
+export var boardStatsDatabase: BoardDatabase = {};
 
+/*console.log('Reading board database json')
+let s = performance.now();
+try {
+    boardStatsDatabase = boardDB;
+} catch (e) {
+    console.log('error', e, 'failed to read boardDB.json');
+    boardStatsDatabase = {};
+}
 
-export var boardStatsDatabase: BoardDatabase = boardDB;
+console.log('Board database json read', performance.now() - s, 'ms')
+console.log('saved layouts', Object.keys(boardStatsDatabase).length);*/
+
+/*
+export function getBoardStatsDatabase() {
+    console.log('Reading board database json')
+    let s = performance.now();
+    export var boardStatsDatabase: BoardDatabase = boardDB;
+    console.log('Board database json read', performance.now() - s, 'ms')
+    console.log('saved layouts', Object.keys(boardStatsDatabase).length);
+}*/
 
 //console.log('length before', Object.keys(boardStatsDatabase).length);
 //console.log(boardStatsDatabase);
@@ -34,12 +61,14 @@ export var boardStatsDatabase: BoardDatabase = boardDB;
     return boardStatsDatabase;
 }*/
 
-export function saveBoardStatsDatabase() {
+export function saveBoardStatsDatabase(database: BoardDatabase = undefined, filename: string = 'boardDB.json') {
     console.log('saveBoardStatsDatabase');
     var fs = require('fs');
-    let json = JSON.stringify(boardStatsDatabase);
-    fs.writeFile('boardDB.json', json, 'utf8', function (err: any) { if (err) throw err; console.log('complete'); });
-    console.log('after', boardStatsDatabase);
+    let db = database == undefined ? boardStatsDatabase: database;
+    let json = JSON.stringify(db);
+    //fs.writeFile('positionStatDB.json', json, 'utf8', function (err: any) { if (err) throw err; console.log('complete'); });
+    fs.writeFile(filename, json, 'utf8', function (err: any) { if (err) throw err; console.log('complete'); });
+    console.log('saved layouts after', Object.keys(db).length);
 }
 
 export function decToBin(dec: number) {
@@ -204,7 +233,7 @@ export function getInitBoardStats(initialiser: number = 0): BoardStats {
     }
 }
 
-export function generateKey(white: number, black: number, king: number): string {
+export function generateKey2(white: number, black: number, king: number): string {
     let key = '';
     for (let index = 0; index < 32; index++) {
         let bitWhite = white & (1 << index)
@@ -231,6 +260,33 @@ export function generateKey(white: number, black: number, king: number): string 
 
     // compress key with run length encoding (RLE)
     key = key.replace(/([ \w])\1+/g, (group, chr) => group.length + chr);
+
+    //console.log('key2', key)
+
+    return key;
+}
+
+export function generateKey1(white: number, black: number, king: number): string {
+    
+    //a database key based on the state of the board (white, black, king)
+    let key = '';
+    key += white + '/' + black + '/' + king;
+
+    return key;
+}
+
+export function generateKey(value: number, king: number): string {
+    let key = '';
+    for (let index = 0; index < 32; index++) {
+        let bitPiece = value & (1 << index)
+        let bitKing = king & (1 << index)
+        key += bitPiece ? bitKing ? 'K' : 'P' : '0';
+    }
+
+    //console.log('key1', key)
+
+    // compress key with run length encoding (RLE)
+    //key = key.replace(/([ \w])\1+/g, (group, chr) => group.length + chr);
 
     //console.log('key2', key)
 

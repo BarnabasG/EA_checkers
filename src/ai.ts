@@ -1,9 +1,9 @@
-import { Checkers } from "./checkers";
+import { CheckersGame } from "./checkers";
 import { getBoardFomBin, getPieceCount, printBoard } from "./helper";
 import { BoardStats, Move, Player, PopulationSet } from "./types";
 
 
-export function minimax(checkers: Checkers, depth: number, weights: BoardStats): Move {
+export function minimax(checkers: CheckersGame, depth: number, weights: BoardStats): Move {
     let bestScore = Number.NEGATIVE_INFINITY;
     let bestMove: Move = { start: 0, end: 0, captures: 0 };
   
@@ -21,10 +21,13 @@ export function minimax(checkers: Checkers, depth: number, weights: BoardStats):
 }
 
 
-function alphaBetaSearch(checkers: Checkers, depth: number, alpha: number, beta: number, weights: BoardStats) {
+function alphaBetaSearch(checkers: CheckersGame, depth: number, alpha: number, beta: number, weights: BoardStats) {
 
     if (depth === 0) return quiescenceSearch(checkers, alpha, beta, weights);
+
+    const moves = checkers.getMoves();
   
+    //for (const move of checkers.getMoves()) {
     for (const move of checkers.getMoves()) {
         const next = checkers.makeMove(move);
         const evaluation = -alphaBetaSearch(next, depth - 1, -beta, -alpha, weights);
@@ -36,7 +39,7 @@ function alphaBetaSearch(checkers: Checkers, depth: number, alpha: number, beta:
 }
 
 
-function quiescenceSearch(checkers: Checkers, alpha: number, beta: number, weights: BoardStats) {
+function quiescenceSearch(checkers: CheckersGame, alpha: number, beta: number, weights: BoardStats) {
 
     const evaluation = evaluateBoard(checkers, weights);
   
@@ -56,7 +59,7 @@ function quiescenceSearch(checkers: Checkers, alpha: number, beta: number, weigh
     return alpha;
 }
 
-export function evaluateBoard(checkers: Checkers, weights: BoardStats): number {
+export function evaluateBoard(checkers: CheckersGame, weights: BoardStats): number {
 
     let score: number = 0;
     const pieceCount: number = getPieceCount(checkers.board.white | checkers.board.black);
