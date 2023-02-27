@@ -1,7 +1,7 @@
 import { minimax, evaluateBoard } from "./ai";
 import { CheckersGame } from "./checkers";
-import { BoardDatabase, BoardStats, Move, Player, Status } from "./types";
-import { saveBoardStatsDatabase, getPopulationMatches, printBoard, boardStatsDatabase, generateKey } from "./helper";
+import { BoardDatabase, BoardStats, Move, Player, Status, TrainingParams } from "./types";
+import { saveBoardStatsDatabase, getPopulationMatches, printBoard, boardStatsDatabase, generateKey, STANDARD_TRAINING_PATTERNS } from "./helper";
 import { Population } from "./population";
 import SingletonPool from 'node-multiprocess';
 
@@ -13,27 +13,29 @@ export var boardStatsDatabase: BoardDatabase = boardDB;
 console.log('Board database json read', performance.now() - s, 'ms')
 console.log('saved layouts', Object.keys(boardStatsDatabase).length);*/
 
+
+
 export class Checkers {
 
-    readonly population: Population;
-    readonly matches: number[][];
+    private population: Population;
+    //readonly matches: number[][];
     
-    readonly populationSize: number;
+    //readonly populationSize: number;
 
-    private moveLimit: number;
-    private depth: number;
+    //private moveLimit: number;
+    //private depth: number;
 
     constructor(
         //population: Population = new Population(populationSize),
         //matches: number[][] = getPopulationMatches(populationSize)
-        populationSize: number = 10
+        //populationSize: number = 10
     ) {
-        this.populationSize = populationSize;
-        this.population = new Population(populationSize);
-        this.matches = getPopulationMatches(populationSize);
-        this.population.randomiseWeights();
-        this.moveLimit = 100;
-        this.depth = 3;
+        //this.populationSize = populationSize;
+        //this.population = new Population(populationSize);
+        //this.matches = getPopulationMatches(populationSize);
+        //this.population.randomiseWeights();
+        //this.moveLimit = 100;
+        //this.depth = 3;
     }
 
     //foo(x: number[]) {
@@ -42,16 +44,35 @@ export class Checkers {
 
 
 
+    //train(depth: number = this.depth, moveLimit: number = this.moveLimit) {
+    train(trainingParams: TrainingParams = {
+            standard: true,
+            standardMethod: 'RO'
+        }) {
 
-    train(depth: number = this.depth, moveLimit: number = this.moveLimit) {
-        this.moveLimit = moveLimit;
-        this.depth = depth;
+
+        if (trainingParams.standard) {
+            this.standardTraining(trainingParams.standardMethod);
+        } else {
+            this.customTraining(trainingParams);
+
+        }
+
+
+        this.moveLimit = trainingParams.moveLimit;
+        this.depth = trainingParams.depth;
 
         //const population = new Population(populationSize);
         //population.randomiseWeights();
         console.log(this.population.population)
         //const matches = getPopulationMatches(populationSize);
         //let results: number[] = []; 
+
+        this.population = new Population(populationSize);
+        this.matches = getPopulationMatches(populationSize);
+        this.population.randomiseWeights();
+        this.moveLimit = moveLimit;
+        this.depth = depth;
 
         //console.log(matches)
 
@@ -140,8 +161,67 @@ export class Checkers {
         return 0;
     }
 
+    standardTraining(method: string) {
 
-    generateOpeningBookPositions(depth: number) {
+        const pattern = STANDARD_TRAINING_PATTERNS[method];
+
+        let matches: number[][];
+        let moveLimit: number;
+        let depth: number;
+
+        for (let gen=0; gen<10; gen++) {
+            this.population = new Population(pattern[gen].populationSize);
+            this.population.randomiseWeights();
+            this.matches = getPopulationMatches(pattern[gen].populationSize);
+            this.moveLimit = pattern[gen].moveLimit;
+            this.depth = pattern[gen].depth;
+
+            for (let j=0; j<pattern.generations; j++) {
+                console.log(`generation ${j+1}/${pattern.generations}`)
+                for (let k = 0; k < this.matches.length; k++) {
+                    //console.log(`match ${k+1}/${this.matches.length}`)
+                    let index1 = this.matches[k][0];
+                    let index2 = this.matches[k][1];
+                    let status = this.compete([index1, index2]);
+                    if (status === 1) {
+                        this.population.population[index1]['score'] += 1;
+                        //console.log('white won', index1, index2)
+                    } else if (status === 2) {
+                        this.population.population[index2]['score'] += 1;
+                        //console.log('black won', index1, index2)
+                    } else if (status === 0) {
+                        this.population.population[index1]['score'] += 0.5;
+                        this.population.population[index2]['score'] += 0.5;
+                        //console.log('draw', index1, index2)
+                    }
+                }
+                console.log(this.population.getScores())
+                this.population.evolve(pattern);
+                console.log(this.population.getScores())
+            }
+        }
+        
+        
+    
+    }
+
+    customTraining(trainingParams: TrainingParams) {
+        const { depth = 5,
+            moveLimit = 150,
+            generations = 10,
+            populationSize = 50,
+            competitionType = 0,
+            selectionMethod = 0,
+            mutationVariance = undefined,
+            selectionPercent = undefined,
+            keepTopPercent = undefined,
+            populationSizePattern = undefined } = trainingParams;
+
+        this.population = new Population(populationSize);
+    }
+
+
+    generateOpeningBookPositions(depth: number) { //TODO remove
 
         let checkers = new CheckersGame();
         let database: BoardDatabase = {};

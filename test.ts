@@ -1,5 +1,7 @@
 
 
+var Benchmark = require('benchmark');
+
 function permute1(arr: any[], length: number = arr.length) {
 	var result = [arr.slice()],
 		c = new Array(length).fill(0),
@@ -98,7 +100,7 @@ function permute5(arr, len = 3) {
     return results;
 }
 
-var Benchmark = require('benchmark');
+/*
 var suite = new Benchmark.Suite;
 var input = [0, 1, 2, 3, 4];
 
@@ -116,6 +118,185 @@ suite.add('permute_1', function() {
 	})
 	.add('permute_5', function() {
 		permute5(input);
+	})
+	.on('cycle', function(event) {
+		console.log(String(event.target));
+	})
+	.on('complete', function() {
+		console.log('Fastest is ' + this.filter('fastest').map('name'));
+	})
+	.run({async: true});
+*/
+
+//////
+
+function weightedRandom1(values: any[], weights: number[]): any {
+    const totalWeight = weights.reduce((acc, w) => acc + w, 0);
+    let randomNum = Math.random() * totalWeight;
+  
+    for (let i = 0; i < values.length; i++) {
+        if (randomNum < weights[i]) {
+            return values[i];
+        }
+        randomNum -= weights[i];
+    }
+  
+    // All weights are 0 or negative
+    throw new Error('All weights are 0 or negative');
+}
+
+function weightedRandom2(values: any[], weights: number[], n: number): any[] {
+    if (values.length !== weights.length) {
+        throw new Error('Values and weights arrays must be of equal length.');
+    }
+  
+    const weightedValues: [any, number][] = values.map((value, index) => [value, weights[index]]);
+    let totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+    const result: any[] = [];
+  
+    while (n > 0 && weightedValues.length > 0) {
+        let rand = Math.random() * totalWeight;
+        let i = 0;
+    
+        while (rand > 0 && i < weightedValues.length) {
+            rand -= weightedValues[i][1];
+            i++;
+        }
+    
+        i--;
+        result.push(weightedValues[i][0]);
+        totalWeight -= weightedValues[i][1];
+        weightedValues.splice(i, 1);
+        n--;
+    }
+  
+    return result;
+}
+
+function weightedRandom3(values: any[], weights: number[], n: number): any[] {
+    const weightedValues = values.map((value, index) => [value, weights[index]]);
+    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+    return Array.from({ length: n }, () => {
+        let rand = Math.random() * totalWeight;
+        return weightedValues.find(([value, weight]) => (rand -= weight) < 0)?.[0];
+    });
+}
+
+function weightedRandom4<T>(values: T[], weights: number[], n: number): T[] {
+	const nValues = values.length;
+	const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+	const normWeights = weights.map((weight) => weight / totalWeight);
+  
+	const aliasTable: number[] = [];
+	const probTable: number[] = [];
+	const small: number[] = [];
+	const large: number[] = [];
+	for (let i = 0; i < nValues; i++) {
+		const prob = normWeights[i] * nValues;
+		if (prob < 1) {
+			small.push(i);
+		} else {
+			large.push(i);
+		}
+		probTable[i] = prob;
+		aliasTable[i] = i;
+	}
+  
+	while (small.length > 0 && large.length > 0) {
+		const l = small.pop()!;
+		const g = large.pop()!;
+		probTable[l] = normWeights[l] * nValues;
+		aliasTable[l] = g;
+		probTable[g] = probTable[g] + probTable[l] - 1;
+		if (probTable[g] < 1) {
+			small.push(g);
+		} else {
+			large.push(g);
+		}
+	}
+  
+	const result: T[] = [];
+	for (let i = 0; i < n; i++) {
+		const r = Math.floor(Math.random() * nValues);
+		const prob = probTable[r];
+		if (Math.random() < prob) {
+			result.push(values[r]);
+		} else {
+			result.push(values[aliasTable[r]]);
+		}
+	}
+  
+	return result;
+}
+
+function weightedRandom5<T>(values: T[], weights: number[], n: number): T[] {
+	const nValues = values.length;
+	const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+	const normWeights = weights.map((weight) => weight / totalWeight);
+  
+	const aliasTable: number[] = [];
+	const probTable: number[] = [];
+	let small: number[] = [];
+	let large: number[] = [];
+	for (let i = 0; i < nValues; i++) {
+	  const prob = normWeights[i] * nValues;
+	  probTable.push(prob);
+	  aliasTable.push(i);
+	  (prob < 1 ? small : large).push(i);
+	}
+  
+	while (small.length && large.length) {
+	  const l = small.pop()!;
+	  const g = large.pop()!;
+	  aliasTable[l] = g;
+	  probTable[g] += probTable[l] - 1;
+	  (probTable[g] < 1 ? small : large).push(g);
+	}
+  
+	const result: T[] = [];
+	const selected = new Set<number>();
+	while (result.length < n) {
+	  const r = Math.floor(Math.random() * nValues);
+	  const prob = probTable[r];
+	  if (Math.random() < prob && !selected.has(r)) {
+		result.push(values[r]);
+		selected.add(r);
+	  } else if (!selected.has(aliasTable[r])) {
+		result.push(values[aliasTable[r]]);
+		selected.add(aliasTable[r]);
+	  }
+	}
+  
+	return result;
+}
+  
+
+
+var suite2 = new Benchmark.Suite;
+//var input2 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+let keys: number[] = [];
+let values: number[] = [];
+
+for (let i = 0; i < 10; i++) {
+  keys.push(i);
+  values.push(Math.random());
+}
+
+//console.log(keys);
+//console.log(values);
+
+suite2.add('rand_2', function() {
+		weightedRandom2(keys, values, 5);
+	})
+	.add('rand_3', function() {
+		weightedRandom3(keys, values, 5);
+	})
+	.add('rand_4', function() {
+		weightedRandom4(keys, values, 5);
+	})
+	.add('rand_5', function() {
+		weightedRandom5(keys, values, 5);
 	})
 	.on('cycle', function(event) {
 		console.log(String(event.target));

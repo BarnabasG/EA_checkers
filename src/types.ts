@@ -24,13 +24,36 @@ export type WeightSet = {
     score: number;
 }
 
+export interface TrainingParams {
+    standard?: boolean;
+    standardMethod?: string;
+    depth?: number;
+    moveLimit?: number;
+    generations?: number;
+    populationSize?: number;
+    competitionType?: number;
+    selectionMethod?: number;
+    mutationVariance?: number;
+    selectionPercent?: number;
+    keepTopPercent?: number;
+    matchCount?: number;
+    populationSizePattern?: number[];
+}
+
+export type Pattern = {
+    [key: number]: TrainingParams;
+}
+
+export interface TrainingPatterns {
+    [key: string]: Pattern;
+}
+
 export interface PopulationSet {
-    [key: number]:  WeightSet;
-    
+    [key: number]: WeightSet;
 }
 
 export interface BoardDatabase {
-    [key: string]:  BoardStats;
+    [key: string]: BoardStats;
 }
 
 /*export type BoardStats = {

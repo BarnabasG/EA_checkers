@@ -1,7 +1,7 @@
 //import { minimax, evaluateBoard } from "./ai";
 //import { Board } from "./board";
 //import { Checkers } from "./checkers";
-import { BoardStats, Player, Status, BoardDatabase } from "./types";
+import { BoardStats, Player, Status, BoardDatabase, TrainingPatterns, Pattern } from "./types";
 
 //let s1 = performance.now();
 //import boardDB from '../boardDB_6.json';
@@ -16,6 +16,39 @@ import { BoardStats, Player, Status, BoardDatabase } from "./types";
 //console.log(boardDB)
 
 export var boardStatsDatabase: BoardDatabase = {};
+
+
+export const STANDARD_TRAINING_PATTERNS: TrainingPatterns = {
+    //Round Robin
+    'RR': {
+        0:  {depth:2, populationSize:50}, //[2, 50], //2450 
+        1:  {depth:3, populationSize:40}, //[3, 40], //1560
+        2:  {depth:4, populationSize:25}, //[4, 25], //870
+        3:  {depth:4, populationSize:20}, //[4, 20], //380
+        4:  {depth:4, populationSize:20}, //[4, 20],
+        5:  {depth:5, populationSize:20}, //[5, 20],
+        6:  {depth:5, populationSize:20}, //[5, 20],
+        7:  {depth:5, populationSize:20}, //[5, 20],
+        8:  {depth:6, populationSize:20}, //[6, 20],
+        9:  {depth:6, populationSize:20}, //[6, 20],
+        10: {depth:7, populationSize:20} //[7, 20]
+    },
+    //Random Opponents
+    'RO': {
+        0:  {depth:2, populationSize:50, matchCount:15}, //[2, 200, 15], //3000
+        1:  {depth:3, populationSize:40, matchCount:10}, //[3, 150, 10], //2000
+        2:  {depth:4, populationSize:25, matchCount:10}, //[4, 100, 10], //1500
+        3:  {depth:4, populationSize:20, matchCount:10}, //[4, 100, 10], //1500
+        4:  {depth:4, populationSize:20, matchCount:10}, //[4, 100, 10], //1500
+        5:  {depth:5, populationSize:20, matchCount:10}, //[5, 50, 10], //1000
+        6:  {depth:5, populationSize:20, matchCount:10}, //[5, 50, 10],
+        7:  {depth:5, populationSize:20, matchCount:10}, //[5, 50, 10],
+        8:  {depth:6, populationSize:20, matchCount:10}, //[6, 50, 10],
+        9:  {depth:6, populationSize:20, matchCount:10}, //[6, 50, 10],
+        10: {depth:7, populationSize:20, matchCount:10}  //[7, 50, 10]
+    }
+}
+
 
 /*console.log('Reading board database json')
 let s = performance.now();
@@ -330,6 +363,63 @@ function permutations(arr: number[], len: number = arr.length): number[][] {
 
     return results;
 }
+
+
+export function weightedRandom(values: any[], weights: number[], n: number): any[] {
+    if (values.length !== weights.length) {
+        throw new Error('Values and weights arrays must be of equal length.');
+    }
+
+    if (weights.reduce((a, b) => a + b, 0) == 0) {
+        // All weights are 0, so return values with equal probability
+        weights = weights.map(() => 1);
+    }
+  
+    const weightedValues: [any, number][] = values.map((value, index) => [value, weights[index]]);
+    let totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+    const result: any[] = [];
+  
+    while (n > 0 && weightedValues.length > 0) {
+        let rand = Math.random() * totalWeight;
+        let i = 0;
+    
+        while (rand > 0 && i < weightedValues.length) {
+            rand -= weightedValues[i][1];
+            i++;
+        }
+    
+        i--;
+        try {
+            result.push(weightedValues[i][0]);
+        } catch (error) {
+            console.log('error', error)
+            console.log('i', i)
+            console.log('weightedValues', weightedValues)
+            console.log('weightedValues[i]', weightedValues[i])
+            console.log('weightedValues[i][0]', weightedValues[i][0])
+        }
+        
+        totalWeight -= weightedValues[i][1];
+        weightedValues.splice(i, 1);
+        n--;
+    }
+  
+    return result;
+}
+
+/*
+export function listToPopulationSet(list: any[]): PopulationSet {
+    let populationSet: PopulationSet = {
+        population: [],
+        weights: []
+    }
+    for (let item of list) {
+        populationSet.population.push(item);
+        populationSet.weights.push(1);
+    }
+    return populationSet;
+}*/
+
 
 
 /*import { Checkers } from "./checkers";
