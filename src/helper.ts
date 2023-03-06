@@ -1,7 +1,7 @@
 //import { minimax, evaluateBoard } from "./ai";
 //import { Board } from "./board";
 //import { Checkers } from "./checkers";
-import { BoardStats, Player, Status, BoardDatabase, TrainingPatterns, Pattern } from "./types";
+import { BoardStats, Player, Status, BoardDatabase, TrainingPatterns, Pattern, Move } from "./types";
 
 //let s1 = performance.now();
 //import boardDB from '../boardDB_6.json';
@@ -94,7 +94,7 @@ export function getBoardStatsDatabase() {
     return boardStatsDatabase;
 }*/
 
-export function saveBoardStatsDatabase(database: BoardDatabase = undefined, filename: string = 'boardDB.json') {
+/*export function saveBoardStatsDatabase(database: BoardDatabase = undefined, filename: string = 'boardDB.json') {
     console.log('saveBoardStatsDatabase');
     var fs = require('fs');
     let db = database == undefined ? boardStatsDatabase: database;
@@ -102,7 +102,7 @@ export function saveBoardStatsDatabase(database: BoardDatabase = undefined, file
     //fs.writeFile('positionStatDB.json', json, 'utf8', function (err: any) { if (err) throw err; console.log('complete'); });
     fs.writeFile(filename, json, 'utf8', function (err: any) { if (err) throw err; console.log('complete'); });
     console.log('saved layouts after', Object.keys(db).length);
-}
+}*/
 
 export function decToBin(dec: number) {
     return (dec >>> 0).toString(2);
@@ -142,7 +142,8 @@ export function getPresentBits(value: number): number[] {
     }
   
     return bitArr;
-  }
+}
+
 
 export function printBoard(white: number, black: number, king: number) {
 
@@ -180,7 +181,6 @@ export function printBoard(white: number, black: number, king: number) {
     if (lists) {
         for (let i=0; i < lists.length; i++) {
             lists[i] = lists[i].split('').join('   ');
-            //lists[i] = i%2==0 ? '- ' + lists[i] : lists[i] + ' -';
             lists[i] = i%2==0 ? '  ' + lists[i] : lists[i] + '  ';
         }
     }
@@ -209,18 +209,7 @@ export function reduceCaptures(moves: any[]) {
     return reduced;
 }
 
-//  { start: -2147483648, end: -134217728, captures: 0 },
-//{ start: -2147483648, end: -67108864, captures: 0 }
 
-/*console.log(decToBin(-2147483648))
-console.log(decToBin(2147483648))
-console.log(decToBin(-134217728))
-console.log(decToBin(-67108864))
-console.log(getBoardFomBin(-67108864))
-console.log(getBoardFomBin(67108864))*/
-
-// TODO: issue is with square 31 (top left) being -2147483648 in binary rather than 2147483648
-// This is find until shhift also returns a negative number
 
 export function getPieceCount(value: number): number {
     let count = 0;
@@ -266,7 +255,23 @@ export function getInitBoardStats(initialiser: number = 0): BoardStats {
     }
 }
 
-export function generateKey2(white: number, black: number, king: number): string {
+export function getCapturePreferer(): BoardStats {
+    return {
+        pieces: 1,
+        kings: 1,
+        avrDist: 0,
+        backline: 0,
+        corners: 0,
+        edges: 0,
+        centre2: 0,
+        centre4: 0,
+        centre8: 0,
+        defended: 0,
+        attacks: 0
+    }
+}
+
+/*export function generateKey2(white: number, black: number, king: number): string {
     let key = '';
     for (let index = 0; index < 32; index++) {
         let bitWhite = white & (1 << index)
@@ -306,7 +311,7 @@ export function generateKey1(white: number, black: number, king: number): string
     key += white + '/' + black + '/' + king;
 
     return key;
-}
+}*/
 
 export function generateKey(value: number, king: number): string {
     let key = '';
@@ -389,15 +394,7 @@ export function weightedRandom(values: any[], weights: number[], n: number): any
         }
     
         i--;
-        try {
-            result.push(weightedValues[i][0]);
-        } catch (error) {
-            console.log('error', error)
-            console.log('i', i)
-            console.log('weightedValues', weightedValues)
-            console.log('weightedValues[i]', weightedValues[i])
-            console.log('weightedValues[i][0]', weightedValues[i][0])
-        }
+        result.push(weightedValues[i][0]);
         
         totalWeight -= weightedValues[i][1];
         weightedValues.splice(i, 1);
@@ -405,6 +402,22 @@ export function weightedRandom(values: any[], weights: number[], n: number): any
     }
   
     return result;
+}
+
+
+export function checkDraw(boardStack: number[][], nonManMoves: number): boolean {
+    //check for draw by 40 move rule
+    if (nonManMoves >= 40) return true;
+
+    //check for draw by repetition
+    if (boardStack.length > 4) {
+        if (boardStack.at(-1) === boardStack.at(-3) && boardStack.at(-3) === boardStack.at(-5)) {
+            console.log('draw by repetition')
+            console.log(boardStack[-1], boardStack[-3], boardStack[-5])
+            return true;
+        }
+    }
+    return false;   
 }
 
 /*

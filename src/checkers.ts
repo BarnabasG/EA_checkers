@@ -46,7 +46,13 @@ export class CheckersGame {
     }
 
     makeMove(move: Move): CheckersGame {
-        if (!this.getMoves().includes(move)) throw new Error('invalid move');
+        if (!this.getMoves().includes(move)) {
+            console.log('player', this.player)
+            printBoard(this.board.white, this.board.black, this.board.king);
+            console.log('move', move)
+            console.log('moves', this.getMoves())
+            throw new Error('invalid move');
+        }
         if (move.captures) getBoardFomBin(move.captures)
         const nextBitboard = this.player === Player.WHITE ? this.board.makeMoveWhite(move) : this.board.makeMoveBlack(move);
         const nextPlayerToMove = this.player === Player.WHITE ? Player.BLACK : Player.WHITE;

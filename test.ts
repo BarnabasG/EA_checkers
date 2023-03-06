@@ -304,4 +304,23 @@ suite2.add('rand_2', function() {
 	.on('complete', function() {
 		console.log('Fastest is ' + this.filter('fastest').map('name'));
 	})
-	.run({async: true});
+	//.run({async: true});
+
+const myMap = new Map();
+myMap.set("key1", "value1");
+myMap.set("key2", "value2");
+myMap.set("key3", "value3");
+
+// Using Array.from()
+const keyList = Array.from(myMap.keys());
+console.log(keyList); // Output: ["key1", "key2", "key3"]
+
+// Using spread syntax
+const keyList2 = [...myMap.keys()];
+console.log(keyList2); // Output: ["key1", "key2", "key3"]
+
+console.log(myMap)
+console.log(myMap.keys())
+console.log(myMap.values())
+console.log(myMap.entries())
+console.log(myMap['key1'])

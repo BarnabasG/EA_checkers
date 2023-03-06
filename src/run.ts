@@ -1,7 +1,7 @@
 import { minimax, evaluateBoard } from "./ai";
 import { CheckersGame } from "./checkers";
-import { BoardDatabase, BoardStats, Move, Player, Status, TrainingParams } from "./types";
-import { saveBoardStatsDatabase, getPopulationMatches, printBoard, boardStatsDatabase, generateKey, STANDARD_TRAINING_PATTERNS } from "./helper";
+import { BoardDatabase, BoardStats, GenerationParams, Move, Player, Status, TrainingParams, WeightSet } from "./types";
+import { getPopulationMatches, printBoard, boardStatsDatabase, generateKey, STANDARD_TRAINING_PATTERNS, checkDraw } from "./helper";
 import { Population } from "./population";
 import SingletonPool from 'node-multiprocess';
 
@@ -18,6 +18,8 @@ console.log('saved layouts', Object.keys(boardStatsDatabase).length);*/
 export class Checkers {
 
     private population: Population;
+    private moveLimit: number;
+    private depth: number;
     //readonly matches: number[][];
     
     //readonly populationSize: number;
@@ -47,32 +49,35 @@ export class Checkers {
     //train(depth: number = this.depth, moveLimit: number = this.moveLimit) {
     train(trainingParams: TrainingParams = {
             standard: true,
-            standardMethod: 'RO'
+            standardMethod: 'RR',
+            generations: 5
         }) {
 
 
         if (trainingParams.standard) {
-            this.standardTraining(trainingParams.standardMethod);
+            //let method = trainingParams.standardMethod || 'RR'; 
+            //this.standardTraining(method, trainingParams.generations);
+            this.standardTraining(trainingParams);
         } else {
             this.customTraining(trainingParams);
 
         }
 
 
-        this.moveLimit = trainingParams.moveLimit;
-        this.depth = trainingParams.depth;
+        //this.moveLimit = trainingParams.moveLimit;
+        //this.depth = trainingParams.depth;
 
         //const population = new Population(populationSize);
         //population.randomiseWeights();
-        console.log(this.population.population)
+        //console.log(this.population.population)
         //const matches = getPopulationMatches(populationSize);
         //let results: number[] = []; 
 
-        this.population = new Population(populationSize);
+        /*this.population = new Population(populationSize);
         this.matches = getPopulationMatches(populationSize);
         this.population.randomiseWeights();
         this.moveLimit = moveLimit;
-        this.depth = depth;
+        this.depth = depth;*
 
         //console.log(matches)
 
@@ -100,7 +105,7 @@ export class Checkers {
         //promisesResults.forEach(result => console.log(result));
 
 
-        for (let i = 0; i < this.matches.length; i++) {
+        /*for (let i = 0; i < this.matches.length; i++) {
             console.log(`match ${i+1}/${this.matches.length}`)
             let index1 = this.matches[i][0];
             let index2 = this.matches[i][1];
@@ -117,13 +122,13 @@ export class Checkers {
                 this.population.population[index2]['score'] += 0.5;
                 console.log('draw', index1, index2)
             }
-        }
+        }*/
         
         //for (let i = 0; i < this.population.size; i++) {
         //    console.log(i, this.population.population[i]['score'])
         //}/**/
 
-        console.log(this.population.getScores())
+        //console.log(this.population.getScores())
         
     }
 
@@ -131,9 +136,17 @@ export class Checkers {
         let checkers = new CheckersGame();
         let status = 0;
         let moveIndex = 0;
-        let weights: BoardStats;
-        const whiteWeights = this.population.population[indexes[0]]['weights']
-        const blackWeights = this.population.population[indexes[1]]['weights'];
+        //let weights: BoardStats;
+
+        //console.log(indexes)
+
+        const whiteWeights = this.population.population.get(indexes[0])['weights']
+        //const whiteWeights = this.population.population[indexes[0]]['weights']
+        const blackWeights = this.population.population.get(indexes[1])['weights'];
+        //const blackWeights = this.population.population[indexes[1]]['weights'];
+
+        let boardStack: number[][] = [];
+        let nonManMoves: number = 0;
 
         //console.log(whiteWeights, blackWeights)
     
@@ -148,9 +161,22 @@ export class Checkers {
             }
             //console.log(`${moves.length} moves found (turn ${moveIndex})`)
             //weights = checkers.player === Player.WHITE ? checkers.population.population[index1]['weights'] : checkers.population.population[index2]['weights'];
-            weights = checkers.player === Player.WHITE ? whiteWeights : blackWeights;
-            let move = minimax(checkers, this.depth, weights);
+            //weights = checkers.player === Player.WHITE ? whiteWeights : blackWeights;
+            //let move = minimax(checkers, this.depth, weights);
+            //console.log('using weights from', checkers.player === Player.WHITE ? 'white' : 'black')
+            let move = minimax(checkers, this.depth, checkers.player === Player.WHITE ? whiteWeights : blackWeights);
+            //let move = minimax(checkers, this.depth, whiteWeights, blackWeights);
             checkers = checkers.makeMove(move);
+
+            move.end && checkers.board.king ? nonManMoves++ : nonManMoves = 0;
+            boardStack.push([checkers.board.white, checkers.board.black, checkers.board.king]);
+            if (boardStack.length > 5) boardStack.shift();
+            if (checkDraw(boardStack, nonManMoves)) break;
+            
+            
+            //console.log('move', moveIndex, checkers.player === Player.WHITE ? 'black' : 'white')
+            //printBoard(checkers.board.white, checkers.board.black, checkers.board.king);
+
             //console.log(move)
             //printBoard(checkers.board.white, checkers.board.black, checkers.board.king);
             //console.log('white eval', evaluateBoard(checkers, whiteWeights))
@@ -158,52 +184,98 @@ export class Checkers {
             moveIndex++;
         }
     
+        printBoard(checkers.board.white, checkers.board.black, checkers.board.king);
         return 0;
     }
 
-    standardTraining(method: string) {
+    //standardTraining(method: string, generations: number = 10) {
+    standardTraining(trainingParams: TrainingParams) {
 
-        const pattern = STANDARD_TRAINING_PATTERNS[method];
+        const { standardMethod = 'RR',
+            depth = undefined,
+            moveLimit = 150,
+            generations = 10,
+            populationSize = undefined,
+            competitionType = 0,
+            selectionMethod = 0,
+            mutationVariance = undefined,
+            selectionPercent = undefined,
+            keepTopPercent = undefined,
+            populationSizePattern = undefined } = trainingParams;
+
+        const pattern = STANDARD_TRAINING_PATTERNS[standardMethod];
 
         let matches: number[][];
-        let moveLimit: number;
-        let depth: number;
+        this.moveLimit = moveLimit;
+        //let moveLimit: number;
+        //let depth: number;
+        //let population: Population;
 
-        for (let gen=0; gen<10; gen++) {
+        let testScores: number[] = [];
+
+        for (let gen=0; gen<generations; gen++) {
+            console.log(`generation ${gen+1}/${generations}`)
             this.population = new Population(pattern[gen].populationSize);
-            this.population.randomiseWeights();
-            this.matches = getPopulationMatches(pattern[gen].populationSize);
-            this.moveLimit = pattern[gen].moveLimit;
             this.depth = pattern[gen].depth;
+            //this.population.randomiseWeights();
+            testScores.push(this.testPopulation());
+            matches = getPopulationMatches(pattern[gen].populationSize);
+            //this.moveLimit = trainingParams.moveLimit;
+            let value: WeightSet;
+            let index: number;
+            
 
-            for (let j=0; j<pattern.generations; j++) {
-                console.log(`generation ${j+1}/${pattern.generations}`)
-                for (let k = 0; k < this.matches.length; k++) {
-                    //console.log(`match ${k+1}/${this.matches.length}`)
-                    let index1 = this.matches[k][0];
-                    let index2 = this.matches[k][1];
-                    let status = this.compete([index1, index2]);
-                    if (status === 1) {
-                        this.population.population[index1]['score'] += 1;
-                        //console.log('white won', index1, index2)
-                    } else if (status === 2) {
-                        this.population.population[index2]['score'] += 1;
-                        //console.log('black won', index1, index2)
-                    } else if (status === 0) {
+            for (let j = 0; j < matches.length; j++) {
+                //console.log(`match ${j+1}/${matches.length}`)
+                let index1 = matches[j][0];
+                let index2 = matches[j][1];
+                let status = this.compete([index1, index2]);
+                if (status === 0) {
+                    value = this.population.population.get(index1);
+                    value['score'] += 0.5;
+                    this.population.population.set(index1, value);
+                    value = this.population.population.get(index2);
+                    value['score'] += 0.5;
+                    this.population.population.set(index2, value);
+                    //console.log('draw', index1, index2)
+                } else {
+                    index = status === 1 ? index1 : index2;
+                    value = this.population.population.get(index);
+                    value['score'] += 1;
+                    this.population.population.set(index, value);
+                }
+                /*switch (status) {
+                    case 1: //white won
+                        //this.population.population[index1]['score'] += 1;
+                        index = index1;
+                        value = this.population.population.get(index1);
+                        value['score'] += 1;
+                        //this.population.population.set(index1, value);
+                        console.log('white won', index1, index2)
+                        break;
+                    case 2: //black won
+                        //this.population.population[index2]['score'] += 1;
+                        index = index2;
+                        value = this.population.population.get(index2);
+                        value['score'] += 1;
+                        console.log('black won', index1, index2)
+                        break;
+                    case 0: //draw
                         this.population.population[index1]['score'] += 0.5;
                         this.population.population[index2]['score'] += 0.5;
-                        //console.log('draw', index1, index2)
-                    }
-                }
-                console.log(this.population.getScores())
-                this.population.evolve(pattern);
-                console.log(this.population.getScores())
+                        console.log('draw', index1, index2)
+                        break;
+                }*/
+                //this.population.population.set(index, value);
             }
+            console.log(this.population.getScores())
+            this.population.nextGeneration({ size: pattern[Math.min(10, gen+1)].populationSize });
+            //console.log(population.getScores())
         }
-        
-        
-    
+        testScores.push(this.testPopulation());
+        console.log(testScores)
     }
+        
 
     customTraining(trainingParams: TrainingParams) {
         const { depth = 5,
@@ -218,6 +290,41 @@ export class Checkers {
             populationSizePattern = undefined } = trainingParams;
 
         this.population = new Population(populationSize);
+    }
+
+    testPopulation(): number {
+        console.log('testing population')
+        let score = 0;
+        let matches: number[][] = [];
+        let _depth = this.depth;
+        this.depth = 5;
+        for (let i = 0; i < this.population.size; i++) {
+            matches.push([-1, i]);
+            matches.push([i, -1]);
+        }
+
+        for (let j = 0; j < matches.length; j++) {
+            let index1 = matches[j][0];
+            let index2 = matches[j][1];
+            let status = this.compete([index1, index2]);
+            switch (status) {
+                case 1: //white won
+                    if (index1 == -1) score += 1;
+                    break;
+                case 2: //black won
+                    if (index2 == -1) score += 1;
+                    break;
+                case 0: //draw
+                    score += 0.5;
+                    break;
+            }
+        }
+
+        this.depth = _depth;
+
+        console.log('test score', score)
+        return score;
+
     }
 
 
@@ -250,7 +357,7 @@ export class Checkers {
         getNextMoves(checkers, depth)
 
         console.log(`${Object.keys(database).length} boards saved in ${performance.now() - s}ms`)
-        saveBoardStatsDatabase(database, `positionStatDB_${depth}.json`)
+        //saveBoardStatsDatabase(database, `positionStatDB_${depth}.json`)
 
     }
 
@@ -287,7 +394,7 @@ export class Checkers {
 }
 
 
-
+/*
 export function compete1(whiteWeights: BoardStats, blackWeights: BoardStats, moveLimit: number = 100, depth: number = 3) {
     let checkers = new CheckersGame();
     let status = 0;
@@ -354,7 +461,7 @@ export function train1(populationSize: number, depth: number = 3, moveLimit: num
 
     
 
-    /*for (let i = 0; i < matches.length; i++) {
+    for (let i = 0; i < matches.length; i++) {
         console.log(`match ${i}/${matches.length}`)
         let index1 = matches[i][0];
         let index2 = matches[i][1];
@@ -367,7 +474,7 @@ export function train1(populationSize: number, depth: number = 3, moveLimit: num
             population.population[index1]['score'] += 0.5;
             population.population[index2]['score'] += 0.5;
         }
-    }*/
+    }
     
     for (let i = 0; i < population.size; i++) {
         console.log(i, population.population[i]['score'])
@@ -405,7 +512,7 @@ export function minimaxGame(moveLimit: number = 100) {
     //console.log('Game Over (move limit reached)', index, status, Status[status]);
     saveBoardStatsDatabase();
     return status;
-}
+}*/
 
 /*
 export function randomGame(moveLimit: number = 100) {

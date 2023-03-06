@@ -40,6 +40,14 @@ export interface TrainingParams {
     populationSizePattern?: number[];
 }
 
+export interface GenerationParams {
+    size?: number
+    selectionMethod?: number
+    mutationVariance?: number
+    selectionPercent?: number
+    keepTopPercent?: number
+}
+
 export type Pattern = {
     [key: number]: TrainingParams;
 }

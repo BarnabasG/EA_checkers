@@ -8,8 +8,8 @@
 //import { BoardDatabase, BoardStats } from './types';
 
 import { DBHits, DBMisses } from './board';
-import { saveBoardStatsDatabase } from './helper';
-import { minimaxGame, Checkers } from './run';
+//import { saveBoardStatsDatabase } from './helper';
+import { Checkers } from './run';
 
 
 //npx madge --circular --extensions ts ./
@@ -27,10 +27,11 @@ import { minimaxGame, Checkers } from './run';
 
 //console.log(results);
 
-const checkers = new Checkers(60);
+const checkers = new Checkers();
 
 let s = performance.now();
-checkers.train(5, 150)
+//checkers.train(5, 150)
+checkers.train({ standard: true, standardMethod: 'RR', generations: 5 })
 console.log('training time - ', performance.now() - s);
 
 console.log(DBHits, DBMisses, `${(DBHits/(DBHits+DBMisses))*100}%`)
