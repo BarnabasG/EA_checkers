@@ -1,0 +1,64 @@
+
+
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Checkers Charts</title>
+
+	<style>
+	
+	</style>
+
+
+	<!--<script src=" https://cdn.jsdelivr.net/npm/chart.js@~4.1.1"></script>
+    <script src="../build/index.umd.js"></script>-->
+	<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
+	<script src="https://github.com/sgratzl/chartjs-chart-error-bars"></script>
+	<script src="path/to/chartjs-plugin-error-bars.js"></script>-->
+	
+	<!--<script type="module" src="./charts.js"></script>-->
+</head>
+<body>
+    
+	<canvas id="chart1" style="width:100%;max-width:700px"></canvas>
+	<button onclick="download('chart1')">Download</button>
+
+	<!--<canvas id="chart2" style="width:100%;max-width:700px"></canvas>
+	<button onclick="download('chart2')">Download</button>
+
+	<canvas id="chart3" style="width:100%;max-width:700px"></canvas>
+	<button onclick="download('chart3')">Download</button>-->
+
+
+	<canvas id="canvas" style="width:100%;max-width:700px"></canvas>
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-error-bars"></script>
+	<script type = "text/javascript" src="charts.js"></script>
+	
+
+	
+</body>
+<script>
+	function download(id) {
+		// Get the canvas element
+		var canvas = document.getElementById(id);
+
+		// Get the PNG image data URL
+		var imageData = canvas.toDataURL("image/png");
+
+		// Create a new anchor element to download the image
+		var downloadLink = document.createElement("a");
+		downloadLink.href = imageData;
+		downloadLink.download = "chart.png";
+
+		// Trigger a click event on the anchor element to download the image
+		downloadLink.click();
+	}
+
+	//window.onload = (event) => {
+	//	console.log("page is fully loaded");
+	//	<script type = "text/javascript" src="charts.js">script
+	//};
+</script>
+</html>

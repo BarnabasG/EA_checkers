@@ -1,7 +1,8 @@
 
 
-var Benchmark = require('benchmark');
+/*var Benchmark = require('benchmark');
 
+import { CheckersGame } from "./src/checkers";
 function permute1(arr: any[], length: number = arr.length) {
 	var result = [arr.slice()],
 		c = new Array(length).fill(0),
@@ -100,7 +101,7 @@ function permute5(arr, len = 3) {
     return results;
 }
 
-/*
+
 var suite = new Benchmark.Suite;
 var input = [0, 1, 2, 3, 4];
 
@@ -126,7 +127,7 @@ suite.add('permute_1', function() {
 		console.log('Fastest is ' + this.filter('fastest').map('name'));
 	})
 	.run({async: true});
-*/
+*
 
 //////
 
@@ -324,3 +325,158 @@ console.log(myMap.keys())
 console.log(myMap.values())
 console.log(myMap.entries())
 console.log(myMap['key1'])
+*/
+
+//import { Benchmark } from "vitest";
+var Benchmark = require('benchmark');
+import { generateKey, generateKeyComplete, getWeights, pad } from "./src/helper";
+import { BoardStats, WeightInit } from "./src/types";
+import { CheckersGame } from "./src/checkers";
+
+var checkers = new CheckersGame()
+
+
+function colourKey1() {
+	//return generateKey(checkers.board.white, checkers.board.white & checkers.board.king);
+	return generateKey(checkers.board.white, checkers.board.king);
+	//generateKey(checkers.board.black, checkers.board.black & checkers.board.king);
+}
+
+function colourKey2() {
+	return JSON.stringify({0:checkers.board.white, 1:checkers.board.white & checkers.board.king});
+	//JSON.stringify({0:checkers.board.black, 1:checkers.board.black & checkers.board.king});
+}
+
+function colourKey3() {
+	return `${checkers.board.white}/${checkers.board.king}`;
+}
+
+function colourKey4() {
+	let key = '';
+    for (let index = 0; index < 32; index++) {
+        let bitPiece = checkers.board.white & (1 << index)
+        let bitKing = (checkers.board.white & checkers.board.king) & (1 << index)
+        key += bitPiece ? bitKing ? 'K' : 'P' : '0';
+    }
+	return key;
+}
+
+function completeKey1() {
+	return generateKeyComplete(checkers.board.white, checkers.board.black, checkers.board.king)
+}
+
+function completeKey2() {
+	return JSON.stringify(checkers.board);
+}
+
+function completeKey3() {
+	return JSON.stringify({0:checkers.board.white, 1:checkers.board.black, 2:checkers.board.king});
+}
+
+function completeKey4() {
+	return `${checkers.board.white}/${checkers.board.black}/${checkers.board.king}`;
+}
+
+function completeKey5() {
+	let key = '';
+    for (let index = 0; index < 32; index++) {
+        let bitWhite = checkers.board.white & (1 << index)
+        let bitBlack = checkers.board.black & (1 << index)
+        let bitKing = checkers.board.king & (1 << index)
+        if (bitWhite) {
+            if (bitKing) {
+                key += 'W';
+            } else {
+                key += 'w'; 
+            }
+        } else if (bitBlack) {
+            if (bitKing) {
+                key += 'B';
+            } else {
+                key += 'b'; 
+            }
+        } else {
+            key += '0';
+        }
+    }
+	return key;
+}
+
+
+
+
+var suite = new Benchmark.Suite;
+//const boardStats = getWeights(WeightInit.RANDOM)
+
+suite.add('colourKey1', function() {
+		colourKey1();
+	})
+	.add('colourKey2', function() {
+		colourKey2();
+	})
+	.add('colourKey3', function() {
+		colourKey3();
+	})
+	.add('colourKey4', function() {
+		colourKey4();
+	})
+	.add('completeKey1', function() {
+		completeKey1();
+	})
+	.add('completeKey2', function() {
+		completeKey2();
+	})
+	.add('completeKey3', function() {
+		completeKey3();
+	})
+	.add('completeKey4', function() {
+		completeKey4();
+	})
+	.add('completeKey5', function() {
+		completeKey5();
+	})
+	.on('cycle', function(event: { target: any; }) {
+		console.log(String(event.target));
+	})
+	//.on('complete', function() {
+	//	console.log('Fastest is ' + this.filter('fastest').map('name'));
+	//})
+	//.run({async: true});
+
+
+
+export function reverseBits1(num: number): number {
+	let result = 0;
+	for (let i = 0; i < 32; i++) {
+		result = (result << 1) | (num & 1);
+		num >>>= 1;
+	}
+	return result << 16 | result >>> 16;
+}
+
+export function reverseBits(x: number) {
+	x = ((x >> 1) & 0x55555555) | ((x & 0x55555555) << 1);
+	x = ((x >> 2) & 0x33333333) | ((x & 0x33333333) << 2);
+	x = ((x >> 4) & 0x0F0F0F0F) | ((x & 0x0F0F0F0F) << 4);
+	x = ((x >> 8) & 0x00FF00FF) | ((x & 0x00FF00FF) << 8);
+	x = (x >>> 16) | (x << 16);
+
+	return x >>> 0;
+}
+
+//let x = reverseBits(0b00000000000000000000000011110000)
+//console.log(pad(x.toString(2)))
+
+var suite = new Benchmark.Suite;
+//const boardStats = getWeights(WeightInit.RANDOM)
+
+suite.add('reverseBits', function() {
+		reverseBits(0b00000000000000000000000011110000);
+	})
+	.on('cycle', function(event: { target: any; }) {
+		console.log(String(event.target));
+	})
+	//.on('complete', function() {
+	//	console.log('Fastest is ' + this.filter('fastest').map('name'));
+	//})
+	.run({async: true});

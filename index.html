@@ -1,0 +1,721 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Checkers Game</title>
+    
+	<style>
+
+        .board-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width:65%;
+            margin-right:2%;
+            float: left;
+        }
+
+        .board {
+            display: flex;
+            flex-wrap: wrap;
+            /*width: 80vw;
+            height: 80vw; vw; /* Set height equal to width */
+            width: 90%;
+            /*height: 90%;*/
+            max-width: 600px; /* Maximum width of the board */
+            max-height: 600px; /* Maximum height of the board */
+            margin: 0 auto; /* Centers the board */
+            padding: 10px; /* Adds padding around the board */
+        }
+        
+        .square {
+            /*width: calc(100% / 8);*/
+            /*height: 100%;*/
+            width: 50px;
+            height: 50px;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .smallsquare {
+            /*width: calc(100% / 8);*/
+            /*height: 100%;*/
+            width: 20px;
+            height: 20px;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /*.square {
+            flex-basis: calc(100% / 8);
+            box-sizing: border-box;
+            border: 1px solid black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }*/
+
+        /* Set the background color of the squares */
+        .light {
+            background-color: #eaeaea;
+        }
+        
+        .dark {
+            background-color: gray;
+        }
+
+        /* Define the size of the grid rows and container */
+        .grid-row {
+            display: flex;
+            flex-direction: row;
+            width: 100%;
+        }
+
+        .movebox {
+            text-align: center;
+            width: 20%;
+        }
+
+        /*.left-box, .right-box {
+            display: inline-block;
+            vertical-align: top;
+            box-sizing: border-box;
+            padding: 10px;
+        }*/
+          
+        .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+          
+        .left-box {
+            flex-basis: 70%;
+            padding: 10px;
+        }
+        
+        .right-box {
+            /*flex-basis: 25%;*/
+            width: 100%;
+            background-color: #b4b4b4;
+            padding: 10px;
+            margin-right: 20px;
+        }
+        /*.right {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width:28%;
+            margin-left:2%;
+            float: right;
+            border: 3px solid black;
+            padding: 10px;
+            margin-top: 30px;
+          }*/
+        
+        .selected {
+            background-color: rgb(158, 0, 0);
+        }
+
+        .rightside {
+            display: flex;
+            width:40%;
+            float: right;
+        }
+
+        .leftside {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            width:55%;
+            float: left;
+        }
+
+        .whiteMoves {
+            /*background-color: rgb(252, 213, 172);*/
+            float: left;
+            width: 40%;
+        }
+
+        .blackMoves {
+            float: right;
+            width: 40%;
+        }
+
+        .turnNumber {
+            font-weight: bold;
+            float: left;
+            width: 10%;
+        }
+
+        .whitemove {
+            background-color: rgb(252, 213, 172);
+            
+        }
+
+        .blackmove {
+            background-color: rgb(44, 44, 44);
+            color: white;
+        }
+
+        .gameOver {
+            background-color: rgb(255, 0, 0);
+        }
+          
+
+    </style>
+</head>
+<body>
+    <!--<script src="trial4.ts"></script>
+    <script src="boardGen.js"></script>
+
+    <div class="right movebox">
+        <label id="move">
+    </div> -->
+
+    <!--<div class="board-container">-->
+
+    <div class="container">
+        <div class="left-box">
+            <div class="board" id="board"></div>
+        </div>
+
+        <div class="right-box movebox" id="rightbox">
+            <label style="color:black;">New game:</label><br/>
+            <button id="startWhite">White</button><button id="startBlack">Black</button>
+            <br/><br/>
+            <div class="leftside" style="height: 340px; overflow: auto;">
+                <div class="turnNumber" id="turnNumber"></div>
+                <div class="whiteMoves" id="whiteMoves"></div>
+                <div class="blackMoves" id="blackMoves"></div>
+            </div>
+            <div class="rightside">
+                <div id="demoBoard"></div><br/><br/><br/>
+                <div id="gameover" class="gameover"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <!--<button onclick="saveAsPNG()">Save as PNG</button>-->
+
+    <!--<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>-->
+
+    
+
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+    <script>
+
+        function saveAsPNG() {
+            // Get the div element
+            var div = document.getElementById("demoBoard");
+            console.log(div)
+          
+            // Use HTML2Canvas to convert the contents of the div to an image
+            html2canvas(div).then(function(canvas) {
+              // Get the PNG image data URL
+              var imageData = canvas.toDataURL("image/png");
+          
+              // Create a new anchor element to download the image
+              var downloadLink = document.createElement("a");
+              downloadLink.href = imageData;
+              downloadLink.download = "image.png";
+          
+              // Trigger a click event on the anchor element to download the image
+              downloadLink.click();
+            });
+          }/**/
+
+
+        const boardContainer = document.getElementById("board");
+        const demoBoard = document.getElementById("demoBoard");
+        const whiteMovebox = document.getElementById("whiteMoves");
+        const blackMovebox = document.getElementById("blackMoves");
+        const turnNumber = document.getElementById("turnNumber");
+
+        var turnIndex = 0;
+
+        const gridSquares = [];
+        var imgSrc = "./images/";
+        var gameData;
+        var gameover = false;
+
+        const whitePieceSrc = imgSrc + "white_piece.png";
+        const blackPieceSrc = imgSrc + "black_piece.png";
+        const whiteKingSrc = imgSrc + "white_king.png";
+        const blackKingSrc = imgSrc + "black_king.png";
+
+        axios.get('/data')
+            .then(response => {
+                gameData = response.data;
+                console.log(gameData);
+            })
+            .catch(error => {
+                console.error(error);
+            });
+            
+
+        // Create an 8x8 grid
+        for (let i = 0; i < 8; i++) {
+            const row = document.createElement("div");
+            row.classList.add("grid-row");
+            for (let j = 0; j < 8; j++) {
+                const square = document.createElement("div");
+                square.classList.add("square");
+                if ((i + j) % 2 === 0) {
+                    square.classList.add("light");
+                } else {
+                    square.classList.add("dark");
+                }
+                square.id = String(squareIndexToBitIndex(gridSquares.length));
+                row.appendChild(square);
+                gridSquares.push(square);
+            }
+            boardContainer.appendChild(row);
+        }/**/
+
+        
+
+        for (let i = 0; i < 8; i++) {
+            const row = document.createElement("div");
+            row.classList.add("grid-row");
+            for (let j = 0; j < 8; j++) {
+                const square = document.createElement("div");
+                square.classList.add("smallsquare");
+                if ((i + j) % 2 === 0) {
+                    square.classList.add("light");
+                } else {
+                    square.classList.add("dark");
+                }
+                square.id = String(squareIndexToBitIndex(gridSquares.length));
+                square.innerHTML = String(squareIndexToBitIndex(i*8 + j));
+                row.appendChild(square);
+            }
+            demoBoard.appendChild(row);
+        }/**/
+
+
+        // Set the icon for a square
+        function setIcon(bitIndex, colour) {
+            let index = this.bitIndexToSquareIndex(bitIndex);
+            let iconSrc = colour.length == 1
+                            ? colour == "w" ? whitePieceSrc : blackPieceSrc
+                            : colour == "wk" ? whiteKingSrc : blackKingSrc;
+            if (colour.length !== 1) {
+                console.log(colour, iconSrc)
+            }
+            const square = gridSquares[index];
+            const icon = document.createElement("img");
+            icon.src = iconSrc;
+            icon.alt = colour;
+            icon.style.width = "90%";
+            icon.style.height = "90%";
+
+            square.innerHTML = "";
+            square.appendChild(icon);
+        }
+
+        // Remove the icon from a square
+        function removeIcon(bitIndex) {
+            let index = this.bitIndexToSquareIndex(bitIndex);
+            const square = gridSquares[index];
+            square.innerHTML = "";
+        }
+
+        function squareIndexToBitIndex(index) {
+            //return index % 2 == 1 ? Math.floor((63-(index))/ 2) : '';
+            if (Math.floor(index/8) % 2 == 0) {
+                return index % 2 == 1 ? Math.floor((63-(index))/ 2) : '';
+            } else {
+                return index % 2 == 0 ? Math.floor((63-(index))/ 2) : '';
+            }
+        }
+
+        function bitIndexToSquareIndex(index) {
+            return Math.floor(index/4) % 2 == 0 ? 62-(index * 2) : 64-(index * 2) - 1;
+        }
+
+        function bitIndexToDisplayIndex(index) {
+            //return `${index},${index % 4},${(Math.floor(index / 4) * 4) + (3 - index % 4)}`;
+            return (Math.floor(index / 4) * 4) + (3 - index % 4)
+        }
+
+
+        function showSquareIndexes() {
+            for (let i = 0; i < 64; i++) {
+                let index = squareIndexToBitIndex(i);
+                if (index !== '') {
+                    gridSquares[i].innerHTML = bitIndexToDisplayIndex(index)//`${index}/${bitIndexToDisplayIndex(index)}`;
+                }
+                //gridSquares[i].innerHTML = bitIndexToDisplayIndex(squareIndexToBitIndex(i));
+            }
+        }
+
+        function addMove(move, colour) {
+            let box;
+            let c;
+            if (colour == "w") {
+                box = whiteMovebox;
+                c = "whitemove";
+                turnIndex++;
+                let turn = document.createElement("div");
+                turn.innerHTML = turnIndex + '. ';
+                turnNumber.appendChild(turn);
+            } else {
+                box = blackMovebox;
+                c = "blackmove";
+            }
+            let newmove = document.createElement("div");
+            newmove.classList.add(c);
+            newmove.innerHTML = move;
+            box.appendChild(newmove)
+            //box.innerHTML += newmove + '<br>';
+        }
+
+        //const square = document.getElementById('board');
+        const rightbox = document.getElementById('rightbox');
+        function setSize() {
+            //const width = square.offsetWidth;
+            //square.style.height = `${width}px`;
+            rightbox.style.height = `380px`;
+        }
+        setSize();
+        window.addEventListener('resize', setSize);
+
+        function clearMoveboxes() {
+            whiteMovebox.innerHTML = '';
+            blackMovebox.innerHTML = '';
+            turnNumber.innerHTML = '';
+            turnIndex = 0;
+        }
+
+
+        function setBoard(whiteMen, blackMen, whiteKings = [], blackKings = []) {
+            console.log("setBoard", whiteMen, blackMen, whiteKings, blackKings)
+            for (let i = 0; i < 64; i++) {
+                gridSquares[i].innerHTML = "";
+            }
+            for (let i = 0; i < whiteMen.length; i++) {
+                setIcon(whiteMen[i], "w");
+            }
+            for (let i = 0; i < blackMen.length; i++) {
+                setIcon(blackMen[i], "b");
+            }
+            for (let i = 0; i < whiteKings.length; i++) {
+                console.log("setting white king", whiteKings[i])
+                setIcon(whiteKings[i], "wk");
+            }
+            for (let i = 0; i < blackKings.length; i++) {
+                console.log("setting black king", blackKings[i])
+                setIcon(blackKings[i], "bk");
+            }
+        }
+
+        /*function movePlayed(add, addColour, remove, king, moveString) {
+            addMove(moveString);
+            for (let i = 0; i < add.length; i++) {
+                setIcon(bitIndexToDisplayIndex(add[i]), addColour);
+            }
+            for (let i = 0; i < remove.length; i++) {
+                removeIcon(bitIndexToDisplayIndex(remove[i]));
+            }
+            //for (let i = 0; i < king.length; i++) {
+            //    setIcon(bitIndexToDisplayIndex(king[i]), addColour+'k');
+            //}
+        }
+
+        function updateKings(kingIndexes) {
+            for (let i = 0; i < kingIndexes.length; i++) {
+                let index = bitIndexToSquareIndex(kingIndexes[i]);
+                let colour = gridSquares[index].firstChild.alt;
+                if (colour.length == 1) setIcon(index, colour+'k');                
+            }
+        }*/
+
+        //function showMoveDots(squares)
+
+
+        axios.get('/reset')
+            .then(response => {
+                const data = response.data;
+                const whiteMen = data.whiteMen;
+                const blackMen = data.blackMen;
+                const whiteKings = data.whiteKing;
+                const blackKings = data.blackKing;
+                setBoard(whiteMen, blackMen, whiteKings, blackKings);
+            })
+            .catch(error => {
+                console.error(error);
+            });
+        
+        
+        document.getElementById("startWhite").addEventListener('click', () => {
+            gameover = false;
+            selectedPiece = null;
+            axios.get('/reset')
+                .then(response => {
+                    const data = response.data;
+                    const whiteMen = data.whiteMen;
+                    const blackMen = data.blackMen;
+                    const whiteKings = data.whiteKing;
+                    const blackKings = data.blackKing;
+                    setBoard(whiteMen, blackMen, whiteKings, blackKings);
+                    clearMoveboxes();
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+            axios.post('/start', { start: "w" })
+                .then((response) => {
+                    console.log(response.data);
+                    //document.getElementById("test").innerHTML = response.data;
+                    //console.log(helper.printBoard(this.checkers.board.white, this.checkers.board.black, this.checkers.board.king, false))
+                })
+                .catch((error) => {
+                    console.error(error);
+                });/**/
+        });
+
+        document.getElementById("startBlack").addEventListener('click', () => {
+            gameover = false;
+            selectedPiece = null;
+            axios.get('/reset')
+                .then(response => {
+                    const data = response.data;
+                    const whiteMen = data.whiteMen;
+                    const blackMen = data.blackMen;
+                    const whiteKings = data.whiteKing;
+                    const blackKings = data.blackKing;
+                    setBoard(whiteMen, blackMen, whiteKings, blackKings);
+                    clearMoveboxes();
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+            axios.post('/start', { start: "b" })
+                .then((response) => {
+                    console.log(response.data);
+                    //console.log(printBoard(this.checkers.board.white, this.checkers.board.black, this.checkers.board.king, false))
+                })
+                .catch((error) => {
+                    console.error(error);
+                });
+        });
+        
+        /*axios.get('/update_kings')
+            .then(response => {
+                const data = response.data;
+                const kingIndexes = data.kingIndexes;
+                updateKings(kingIndexes);
+            })
+            .catch(error => {
+                document.getElementById("test").innerHTML = error;
+                console.error(error);
+            });*/
+        
+        var selectedPiece = null;
+        
+        gridSquares.forEach((pieceElement) => {
+            pieceElement.addEventListener('click', () => {
+                // Get the id of the clicked element
+                const pieceId = pieceElement.id;
+
+                if (selectedPiece == null) {
+                    //console.log("1")
+                    if (validateSelection(pieceId)) {
+                        //console.log("2")
+                        axios.post('/select_piece', { start: pieceId })
+                            .then((response) => {
+                                console.log(response.data);
+                                if (response.data !== false) {
+                                    selectedPiece = pieceId;
+                                    pieceElement.classList.add("selected");
+                                }
+                            }).catch((error) => {
+                                console.error(error);
+                            });
+                    }
+                } else {
+                    if (selectedPiece == pieceId) {
+                        selectedPiece = null;
+                        pieceElement.classList.remove("selected");
+                    } else {
+                        validateMove(selectedPiece, pieceId)
+                            .then((isValid) => {
+                                console.log('isValid', isValid)
+                                if (isValid) {
+                                    //console.log("5");
+                                    axios.post('/play', { start: selectedPiece, end: pieceId })
+                                        .then(response => {
+                                            //console.log("5a");
+                                            const data = response.data;
+                                            console.log(data)
+                                            const whiteMen = data.white;
+                                            const blackMen = data.black;
+                                            const whiteKings = data.whiteKing;
+                                            const blackKings = data.blackKing;
+                                            const moveString = data.moveString;
+                                            const status = data.status;
+                                            const colour = gameData.playAs;
+                                            addMove(moveString, colour);
+                                            setBoard(whiteMen, blackMen, whiteKings, blackKings);
+                                            if (status == 0) {
+                                                //console.log("5b");
+                                                axios.get('/aimove')
+                                                    .then(response => {
+                                                        //console.log("5c");
+                                                        const data = response.data;
+                                                        console.log(data)
+                                                        const whiteMen = data.white;
+                                                        const blackMen = data.black;
+                                                        const whiteKings = data.whiteKing;
+                                                        const blackKings = data.blackKing;
+                                                        const moveString = data.moveString;
+                                                        const colour = gameData.playAs == 'w' ? 'b' : 'w';
+                                                        addMove(moveString, colour);
+                                                        setBoard(whiteMen, blackMen, whiteKings, blackKings);
+                                                        //console.log(printBoard(this.checkers.board.white, this.checkers.board.black, this.checkers.board.king, false))
+                                                    }).catch(error => {
+                                                        console.error(error);
+                                                    });
+                                            } else {
+                                                //console.log("5d");
+                                                gameover = true;
+                                                const gameoverbox = document.getElementById("gameover");
+                                                //TODO append to playbot_results.txt the result and the depth
+                                                switch(status) {
+                                                    case 1:
+                                                        gameoverbox.innerHTML = "<b>GAME OVER<br/>WHITE WINS<b>";
+                                                        gameoverbox.style.backgroundColor = "white";
+                                                        gameoverbox.style.color = "black";
+                                                        break;
+                                                    case 2:
+                                                        gameoverbox.innerHTML = "<b>GAME OVER<br/>BLACK WINS<b>";
+                                                        gameoverbox.style.backgroundColor = "black";
+                                                        gameoverbox.style.color = "white";
+                                                        break;
+                                                    case 3:
+                                                    document.getElementById("gameover").innerHTML = "<b>GAME OVER<br/>DRAW<b>";
+                                                        break;
+                                                }
+                                            }
+                                        }).catch(error => {
+                                            console.error(error);
+                                        });
+                                    //console.log("4")
+                                    document.getElementById(selectedPiece).classList.remove("selected");
+                                    selectedPiece = null;
+                                } else {
+                                    //console.log("6");
+                                    document.getElementById(selectedPiece).classList.remove("selected");
+                                    selectedPiece = null;
+                                    if (validateSelection(pieceId)) {
+                                        //console.log("7");     
+                                        axios.post('/select_piece', { start: pieceId })
+                                            .then((response) => {
+                                                console.log(response.data);
+                                                if (response.data !== false) {
+                                                    selectedPiece = pieceId;
+                                                    pieceElement.classList.add("selected");
+                                                }
+                                            }).catch((error) => {
+                                                console.error(error);
+                                            });
+                                    }
+                                }
+                            });
+                    }
+                }
+            
+                // Send a POST request to the server with the piece id as data
+                
+            });
+        });
+
+
+        function validateMove(start, end) {
+            console.log('validateMove', start, end)
+            if (!validateSelection(start)) {
+                return Promise.resolve(false);
+            }
+            if (start == end) {
+                return Promise.resolve(false);
+            }
+          
+            return axios.post('/check_move', { start: start, end: end })
+                .then((response) => {
+                    console.log('response', response.data);
+                    console.log('equal', response.data == true)
+                    return response.data == true;
+                })
+                .catch((error) => {
+                    console.error(error);
+                    return false;
+                });
+        }
+          
+
+        function validateSelection(id) {
+
+            console.log(document.getElementById(id));
+
+            if (gameover) return false;
+
+            const colour = gameData.playAs;
+            if (document.getElementById(id)) {
+                if (document.getElementById(id).childNodes.length > 0) {
+                    if (document.getElementById(id).firstChild.alt[0] == colour) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+
+        }
+    
+
+
+        /* 
+        *   Bitwise Board
+        *   ----------------
+        *     31  30  29  28
+        *   27  26  25  24
+        *     23  22  21  20
+        *   19  18  17  16
+        *     15  14  13  12
+        *   11  10  09  08
+        *     07  06  05  04
+        *   03  02  01  00
+        *  ----------------
+        *   Checkers Board
+        *  ----------------
+        *    28  29  30  31
+        *  24  25  26  27
+        *    20  21  22  23
+        *  16  17  18  19
+        *    12  13  14  15
+        *  08  09  10  11
+        *    04  05  06  07
+        *  00  01  02  03
+        *  ----------------
+        * 
+        *
+        */
+
+        //addMove("10-14");
+        //addMove("21-17");
+
+        //showSquareIndexes();
+        // Example usage
+        //setIcon(25, "w"); // set the icon for the 13th square (0-indexed)
+        //setIcon(15, "b");
+        //removeIcon(19); // remove the icon from the 20th square (0-indexed)
+        
+    </script>
+    
+</body>
+</html>

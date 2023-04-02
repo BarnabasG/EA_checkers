@@ -26,14 +26,17 @@
 */
 
 
-import { boardStatsDatabase, generateKey, getAvrDist, getBoardFomBin, getBoardString, getPieceCount, printBoard, roundTo } from './helper';
-import { BoardDatabase, BoardStats, Move, Player } from './types';
+import { boardStatsDatabase, generateBin, generateKey, generateKeyNumber, getAvrDist, getBoardFomBin, getPieceCount, pad, reverseBits, roundTo } from './helper';
+import { BoardStats, Move, Player } from './types';
 
-const BIN: Record<number, number> = [];
-BIN[0] = 1;
-for (let i=1; i<32; i++) {
-    BIN[i] = BIN[i-1] * 2;
-}
+//const BIN: Record<number, number> = [];
+//BIN[0] = 1;
+//for (let i=1; i<32; i++) {
+//    BIN[i] = BIN[i-1] * 2;
+//}
+
+const BIN: Record<number, number> = generateBin();
+
 
 export var DBHits = 0;
 export var DBMisses = 0; 
@@ -45,44 +48,26 @@ const WHITE_INIT = 0b0000_0000_0000_0000_0000_1111_1111_1111;
 const BLACK_INIT = 0b1111_1111_1111_0000_0000_0000_0000_0000;
 const KING_INIT = 0b0000_0000_0000_0000_0000_0000_0000_0000;
 
-
-const test = 0b0000_0000_0000_0000_0000_0000_0000_0100;
-console.log(test >> 4) //-67108860
-console.log(test >>> 4) //-67108860
-/*console.log(test) //2147483776
-console.log(test >> 0) //-2147483520
-console.log(test >>> 5) //-67108860
-// expected output: 67108868
-console.log(getBoardString(test >>> 5)) //1111_1100_0000_0000_0000_0000_0000_0100
-//expected output: 0000_0100_0000_0000_0000_0000_0000_0100*/
-
 // Pieces able to  make a shift left 3 (UP LEFT)
-//const LEFT3 = BIN[1] | BIN[2] | BIN[3] | BIN[9] | BIN[10] | BIN[11] | BIN[17] | BIN[18] | BIN[19] | BIN[25] | BIN[26] | BIN[27];
 const LEFT3 = BIN[5] | BIN[6] | BIN[7] | BIN[13] | BIN[14] | BIN[15] | BIN[21] | BIN[22] | BIN[23];
 
 // Pieces able to  make a shift left 5 (UP RIGHT)
-//const LEFT5 = BIN[4] | BIN[5] | BIN[6] | BIN[12] | BIN[13] | BIN[14] | BIN[20] | BIN[21] | BIN[22];
 const LEFT5 = BIN[0] | BIN[1] | BIN[2] | BIN[8] | BIN[9] | BIN[10] | BIN[16] | BIN[17] | BIN[18] | BIN[24] | BIN[25] | BIN[26];
 
 // Pieces able to  make a shift right 3 (DOWN RIGHT)
-//const RIGHT3 = BIN[4] | BIN[5] | BIN[6] | BIN[12] | BIN[13] | BIN[14] | BIN[20] | BIN[21] | BIN[22] | BIN[28] | BIN[29] | BIN[30];
 const RIGHT3 = BIN[8] | BIN[9] | BIN[10] | BIN[16] | BIN[17] | BIN[18] | BIN[24] | BIN[25] | BIN[26];
 
 // Pieces able to  make a shift right 5 (DOWN LEFT)
-//const RIGHT5 = BIN[9] | BIN[10] | BIN[11] | BIN[17] | BIN[18] | BIN[19] | BIN[25] | BIN[26] | BIN[27];
 const RIGHT5 = BIN[5] | BIN[6] | BIN[7] | BIN[13] | BIN[14] | BIN[15] | BIN[21] | BIN[22] | BIN[23] | BIN[29] | BIN[30] | BIN[31];
 
 
 const KINGROW_WHITE = BIN[28] | BIN[29] | BIN[30] | BIN[31];
 const KINGROW_BLACK = BIN[0] | BIN[1] | BIN[2] | BIN[3];
-const CORNERS = BIN[0] | BIN[3] | BIN[28] | BIN[31];
+const CORNERS = BIN[3] | BIN[28];
 const EDGES = BIN[3] | BIN[4] | BIN[11] | BIN[12] | BIN[19] | BIN[20] | BIN[27] | BIN[28];
 const CENTRE2 = BIN[14] | BIN[17];
 const CENTRE4 = BIN[13] | BIN[14] | BIN[17] | BIN[18];
 const CENTRE8 = BIN[9] | BIN[10] |BIN[13] | BIN[14] | BIN[17] | BIN[18] | BIN[21] | BIN[22];
-
-//let defendableEdges: number = EDGES - BIN[3]
-//console.log(getBoardFomBin(defendableEdges))
 
 
 
@@ -107,28 +92,14 @@ export class Board {
     }
 
     makeMoveWhite(move: Move): Board {
-        //console.log('move white', move)
-        //console.log('move', getBoardFomBin(move.start), getBoardFomBin(move.end), getBoardFomBin(move.captures))
         const isKing = move.start & this.king;
         let king = this.king ^ isKing;
         king ^= move.captures & this.king;
         king |= isKing ? move.end : move.end & KINGROW_WHITE;
-        // XOR white and move.start to set the white piece to 0
-        //console.log('white 1', printBoard(this));
-        //console.log('move.start', getBoardFomBin(move.start));
         let white = this.white ^ move.start;
         white |= move.end;
 
         const black = this.black ^ move.captures;
-
-        //console.log('white 3', printBoard(this));
-       
-        //console.log('king', getBoardFomBin(king), getBoardFomBin(move.end))
-        //console.log('king2', getBoardFomBin(king))
-        //printBoard(this)
-        //king ? console.log('king1', getBoardFomBin(move.end), getBoardFomBin(KINGROW_WHITE), getBoardFomBin(move.end & KINGROW_WHITE)) : console.log('king2', getBoardFomBin(move.end), getBoardFomBin(KINGROW_WHITE), getBoardFomBin(move.end & KINGROW_WHITE));
-
-        //console.log('white 4', printBoard(this));
 
         return new Board(white, black, king);
     }
@@ -395,7 +366,7 @@ export class Board {
         return getPieceCount(defended)
     }
 
-    getDefendedBlack(): number {
+    /*getDefendedBlack(): number {
         let defended: number = 0
 
         defended |= this.black & (EDGES | KINGROW_BLACK | KINGROW_WHITE)
@@ -407,7 +378,7 @@ export class Board {
         //console.log('def black',getBoardFomBin(defended))
 
         return getPieceCount(defended)
-    }
+    }*/
 
     // attacks should include defended pieces but not uncapturable pieces
     getAttacksWhite(): number {
@@ -438,7 +409,7 @@ export class Board {
         return getPieceCount(attacks)
     }
 
-    getBoardStats1(): BoardStats {
+    /*getBoardStats1(): BoardStats {
 
         //TODO: could be more efficient to save white layouts and black layouts seperately as piece layouts, then can make seperate lookups
 
@@ -478,75 +449,351 @@ export class Board {
             DBMisses++;
             return stats;
         }
-    }
+    }*/
 
 
     /**/
+    //getBoardStats(persist: boolean = false): BoardStats {
+
+
     getBoardStats(): BoardStats {
 
-        //TODO: could be more efficient to save white layouts and black layouts seperately as piece layouts, then can make seperate lookups
+
+        //TODO - calc for white, for black flib bits and search db. only calc black attacks seperately.
+        //can use same key, and backline = KINGROW_BLACK (white backline) for all
+        //can put avrDist, backline, defended into main search based on pieces key since player not required,
+        // and just attacks and kings seperately.
+
+        let whiteKey = this.white
+        //console.log('\n')
+        //console.log('w',getBoardFomBin(whiteKey))
+
+        let whiteStats: BoardStats;
+        if (boardStatsDatabase.has(whiteKey)) {
+            //if (returnRes) {
+            whiteStats = boardStatsDatabase.get(whiteKey)!;
+            //console.log('read white', whiteStats)
+            DBHits++; 
+            //}
+        } else {
+            whiteStats = this.getBoardStatsForWhite(this.white);
+            //console.log('write white', whiteStats)
+            //if (persist) {
+            //    boardStatsDatabase.put(whiteKey, whiteStats);
+            //} else {
+            DBMisses++;
+            //} 
+        }
+        //whiteStats = this.combineExtraStats(whiteStats, this.getExtraStats(this.whiteKing, Player.WHITE))
+        whiteStats["kings"] = getPieceCount(this.whiteKing),
+        whiteStats["attacks"] = this.getAttacksWhite()
+        //console.log('combined white', whiteStats!)
+    
+        
+        //let blackKey = this.black//generateKey(this.black, this.blackKing);
+
+        let reverseBlack = reverseBits(this.black)
+
+        //console.log('\n')
+        //console.log('before', getBoardFomBin(this.black), 'after', getBoardFomBin(reverseBlack))
+
+        let blackStats: BoardStats;
+        //if (blackKey in boardStatsDatabase) {
+        if (boardStatsDatabase.has(reverseBlack)) {
+            blackStats = boardStatsDatabase.get(reverseBlack)!;
+            //console.log('read black', blackStats)
+            DBHits++;
+        } else {
+            blackStats = this.getBoardStatsForWhite(reverseBlack);
+            //console.log('write black', blackStats)
+            //if (persist) {
+            //    boardStatsDatabase.put(reverseBlack, blackStats);
+            //} else {
+            DBMisses++;
+            //}
+        }
+        blackStats["kings"] = getPieceCount(this.blackKing),
+        blackStats["attacks"] = this.getAttacksBlack()
+
+        //console.log('combined black', blackStats)
+
+        //blackStats = this.getExtraStats(blackStats, this.black, this.blackKing, Player.BLACK)
+        //blackStats['kings'] = getPieceCount(this.blackKing);
+
+        //console.log(boardStatsDatabase)
+
+        
+        //console.log('result', this.getBoardStatDifferece(whiteStats!, blackStats))
+
+        return this.getBoardStatDifferece(whiteStats, blackStats);
+
+
+    }
+
+    persistStatsForValue(pieces: number, player: Player): void {
+        //let key = generateKey(pieces, kings);
+        let key = player === Player.WHITE ? pieces : reverseBits(pieces);
+        let stats: BoardStats;
+        //console.log('player', player, 'pieces', pieces, getBoardFomBin(pieces), 'key', key, getBoardFomBin(key))
+        if (!boardStatsDatabase.has(key)) {
+            stats = this.getBoardStatsForWhite(key);
+            //console.log('write persist', stats)
+            boardStatsDatabase.put(key, stats);
+        }
+
+    }
+
+    /*getBoardStats2(persist: boolean = false, returnRes: boolean = true): BoardStats {
+
+
+        //generateKey(this.white, this.whiteKing);
+
+        //2073
+        /*
+        attacks: 0 avrDist: 1 backline: 0 centre2: 0 centre4: 0 centre8: 2 corners: 2 defended: 12 edges: 3 kings: 0 pieces: 12
+        *
+
+
+        //TODO - calc for white, for black flib bits and search db. only calc black attacks seperately.
+        //can use same key, and backline = KINGROW_BLACK (white backline) for all
+        //can put avrDist, backline, defended into main search based on pieces key since player not required,
+        // and just attacks and kings seperately.
+
+        let whiteKey = this.white
+        console.log('\n')
+        console.log(getBoardFomBin(whiteKey))
+
+        let whiteStats: BoardStats;
+        if (boardStatsDatabase.has(whiteKey)) {
+            whiteStats = boardStatsDatabase.get(whiteKey)!;
+            console.log('read white', whiteStats)
+            DBHits++; 
+        } else {
+            whiteStats = this.getBoardStatsForColour(this.white);
+            console.log('write white', whiteStats)
+            if (persist) {
+                boardStatsDatabase.put(whiteKey, whiteStats);
+            } else {
+                DBMisses++;
+            } 
+        }
+
+        let whiteKey2 = generateKeyNumber(this.white, this.whiteKing, Player.WHITE);
+        let whiteExtraStats: BoardStats;
+        if (boardStatsDatabase.has(whiteKey2)) {
+            whiteExtraStats = boardStatsDatabase.get(whiteKey2)!;
+            console.log('read white2', whiteExtraStats)
+            DBHits++;
+        } else {
+            whiteExtraStats = this.getExtraStats(this.white, this.whiteKing, Player.WHITE)
+            console.log('write white2', whiteExtraStats)
+            if (persist) {
+                boardStatsDatabase.put(whiteKey2, whiteExtraStats);
+            } else {
+                DBMisses++;
+            }
+        }
+        whiteStats = this.combineExtraStats(whiteStats, whiteExtraStats)
+        console.log('combined white', whiteStats)
+        //attacks requires info for both colours pieces, not worth persisting
+        whiteStats["attacks"] = this.getAttacksWhite()
+
+
+        let blackKey = this.black//generateKey(this.black, this.blackKing);
+        console.log('\n')
+        console.log(getBoardFomBin(blackKey))
+
+        let blackStats: BoardStats;
+        //if (blackKey in boardStatsDatabase) {
+        if (boardStatsDatabase.has(blackKey)) {
+            blackStats = boardStatsDatabase.get(blackKey)!;
+            console.log('read black', blackStats)
+            DBHits++;
+        } else {
+            blackStats = this.getBoardStatsForColour(this.black);
+            console.log('write black', blackStats)
+            if (persist) {
+                boardStatsDatabase.put(blackKey, blackStats);
+            } else {
+                DBMisses++;
+            }
+        }
+
+        let blackKey2 = generateKeyNumber(this.black, this.blackKing, Player.BLACK);
+        let blackExtraStats: BoardStats;
+        if (boardStatsDatabase.has(blackKey2)) {
+            blackExtraStats = boardStatsDatabase.get(blackKey2)!;
+            console.log('read black2', blackExtraStats)
+            DBHits++;
+        } else {
+            blackExtraStats = this.getExtraStats(this.black, this.blackKing, Player.BLACK)
+            console.log('write black2', blackExtraStats)
+            if (persist) {
+                boardStatsDatabase.put(blackKey2, blackExtraStats);
+            } else {
+                DBMisses++;
+            }
+        }
+        blackStats = this.combineExtraStats(blackStats, blackExtraStats)
+        console.log('combined black', blackStats)
+        blackStats["attacks"] = this.getAttacksBlack()
+
+        //blackStats = this.getExtraStats(blackStats, this.black, this.blackKing, Player.BLACK)
+        //blackStats['kings'] = getPieceCount(this.blackKing);
+
+        //console.log(boardStatsDatabase)
+
+        console.log('result', this.getBoardStatDifferece(whiteStats, blackStats))
+
+        if (returnRes) {
+            return this.getBoardStatDifferece(whiteStats, blackStats);
+        } else {
+            return whiteStats;
+        }
+
+    }*/
+
+
+
+    /*getBoardStatsCurrent(persist: boolean = false, returnRes: boolean = true): BoardStats {
+
+
+        //let whiteKey = generateKey(this.white, this.whiteKing);
+        //let blackKey = generateKey(this.black, this.blackKing);
 
         let whiteKey = generateKey(this.white, this.whiteKing);
         let blackKey = generateKey(this.black, this.blackKing);
 
+        
         let whiteStats: BoardStats;
-        if (whiteKey in boardStatsDatabase) {
-            whiteStats = boardStatsDatabase[whiteKey];
+        if (boardStatsDatabase.has(whiteKey)) {
+            whiteStats = boardStatsDatabase.get(whiteKey)!;
             DBHits++;
         } else {
             whiteStats = this.getBoardStatsForColour(this.white, this.whiteKing, Player.WHITE);
-            boardStatsDatabase[whiteKey] = whiteStats;
-            DBMisses++;
+            if (persist) {
+                boardStatsDatabase.put(whiteKey, whiteStats);
+            } else {
+                DBMisses++;
+            } 
         }
 
         let blackStats: BoardStats;
-        if (blackKey in boardStatsDatabase) {
-            blackStats = boardStatsDatabase[blackKey];
+        //if (blackKey in boardStatsDatabase) {
+        if (boardStatsDatabase.has(blackKey)) {
+            blackStats = boardStatsDatabase.get(blackKey)!;
             DBHits++;
         } else {
             blackStats = this.getBoardStatsForColour(this.black, this.blackKing, Player.BLACK);
-            boardStatsDatabase[blackKey] = blackStats;
-            DBMisses++;
+            //if (persist) boardStatsDatabase[blackKey] = blackStats;
+            if (persist) {
+                boardStatsDatabase.put(blackKey, blackStats);
+            } else {
+                DBMisses++;
+            }
         }
 
-        return this.getBoardStatDifferece(whiteStats, blackStats);
+        //console.log(boardStatsDatabase)
 
-    }
+        if (returnRes) {
+            return this.getBoardStatDifferece(whiteStats, blackStats);
+        } else {
+            return whiteStats;
+        }
 
-    getBoardStatsForColour(value: number, king: number, player: Player): BoardStats {
+    }*/
+
+    
+
+    /*getBoardStatsForColour(value: number): BoardStats {
         return {
-            'pieces': getPieceCount(value),
-            'kings': getPieceCount(king),
-            'avrDist': getAvrDist(value),
-            'backline': getPieceCount(value & KINGROW_BLACK),
-            'corners': getPieceCount(value & CORNERS),
-            'edges': getPieceCount(value & EDGES),
-            'centre2': getPieceCount(value & CENTRE2),
-            'centre4': getPieceCount(value & CENTRE4),
-            'centre8': getPieceCount(value & CENTRE8),
-            'defended': player === Player.WHITE ? this.getDefendedWhite() : this.getDefendedBlack(),
-            'attacks': player === Player.WHITE ? this.getAttacksWhite() : this.getAttacksBlack()
+            'pieces'    : getPieceCount(value),
+            'corners'   : getPieceCount(value & CORNERS),
+            'edges'     : getPieceCount(value & (EDGES | KINGROW_WHITE | KINGROW_BLACK)),
+            'centre2'   : getPieceCount(value & CENTRE2),
+            'centre4'   : getPieceCount(value & CENTRE4),
+            'centre8'   : getPieceCount(value & CENTRE8),
+            'avrDist'   : getAvrDist(pieces, player),
+            //'attacks'   : player === Player.WHITE ? this.getAttacksWhite() : this.getAttacksBlack()
+        }
+    }*/
+
+    getBoardStatsForWhite(value: number): BoardStats {
+        return {
+            'pieces'    : getPieceCount(value),
+            'corners'   : getPieceCount(value & CORNERS),
+            'edges'     : getPieceCount(value & (EDGES | KINGROW_WHITE | KINGROW_BLACK)),
+            'centre2'   : getPieceCount(value & CENTRE2),
+            'centre4'   : getPieceCount(value & CENTRE4),
+            'centre8'   : getPieceCount(value & CENTRE8),
+            'avrDist'   : getAvrDist(value),
+            'backline'  : getPieceCount(value & KINGROW_BLACK),
+            'defended'  : this.getDefendedWhite(),
         }
     }
+
+    /*getExtraStats(kings: number, player: Player): BoardStats {
+        //stats not obtainable from just the piece positions, requires king/player info
+        return {
+            'kings'     : getPieceCount(kings),
+            'attacks'   : player === Player.WHITE ? this.getAttacksWhite() : this.getAttacksBlack()
+        };
+    }
+
+    getExtraStats1(pieces: number, kings: number, player: Player): BoardStats {
+        //stats not obtainable from just the piece positions, requires king/player info
+        return {
+            'kings'     : getPieceCount(kings),
+            'avrDist'   : getAvrDistPlayer(pieces, player),
+            'backline'  : player === Player.WHITE ? getPieceCount(pieces & KINGROW_BLACK): getPieceCount(pieces & KINGROW_WHITE),
+            'defended'  : player === Player.WHITE ? this.getDefendedWhite() : this.getDefendedBlack(),
+            //'attacks'   : player === Player.WHITE ? this.getAttacksWhite() : this.getAttacksBlack()
+        };
+    }
+
+    combineExtraStats(stats: BoardStats, extraStats: BoardStats): BoardStats {
+        //stats not obtainable from just the piece positions
+        for (let key in extraStats) {
+            stats[key] = extraStats[key];
+        }
+        return stats;
+    }*/
+
+    /*getBoardStatsForColour(value: number, king: number, player: Player): BoardStats {
+        return {
+            'pieces'    : getPieceCount(value),
+            'kings'     : getPieceCount(king),
+            'avrDist'   : getAvrDist(value),
+            'backline'  : player === Player.WHITE ? getPieceCount(value & KINGROW_WHITE): getPieceCount(value & KINGROW_BLACK),
+            'corners'   : getPieceCount(value & CORNERS),
+            'edges'     : getPieceCount(value & EDGES),
+            'centre2'   : getPieceCount(value & CENTRE2),
+            'centre4'   : getPieceCount(value & CENTRE4),
+            'centre8'   : getPieceCount(value & CENTRE8),
+            'defended'  : player === Player.WHITE ? this.getDefendedWhite() : this.getDefendedBlack(),
+            'attacks'   : player === Player.WHITE ? this.getAttacksWhite() : this.getAttacksBlack()
+        }
+    }*/
 
     getBoardStatDifferece(statsWhite: BoardStats, statsBlack: BoardStats): BoardStats {
         return {
-            'pieces': statsWhite.pieces - statsBlack.pieces,
-            'kings': statsWhite.kings - statsBlack.kings,
-            'avrDist': roundTo(statsWhite.avrDist - (7 - statsBlack.avrDist), 2),
-            'backline': statsWhite.backline - statsBlack.backline,
-            'corners': statsWhite.corners - statsBlack.corners,
-            'edges': statsWhite.edges - statsBlack.edges,
-            'centre2': statsWhite.centre2 - statsBlack.centre2,
-            'centre4': statsWhite.centre4 - statsBlack.centre4,
-            'centre8': statsWhite.centre8 - statsBlack.centre8,
-            'defended': statsWhite.defended - statsBlack.defended,
-            'attacks': statsWhite.attacks - statsBlack.attacks
+            'pieces'    : statsWhite.pieces - statsBlack.pieces,
+            'kings'     : statsWhite.kings - statsBlack.kings,
+            'avrDist'   : roundTo(statsWhite.avrDist - statsBlack.avrDist, 2),
+            'backline'  : statsWhite.backline - statsBlack.backline,
+            'corners'   : statsWhite.corners - statsBlack.corners,
+            'edges'     : statsWhite.edges - statsBlack.edges,
+            'centre2'   : statsWhite.centre2 - statsBlack.centre2,
+            'centre4'   : statsWhite.centre4 - statsBlack.centre4,
+            'centre8'   : statsWhite.centre8 - statsBlack.centre8,
+            'defended'  : statsWhite.defended - statsBlack.defended,
+            'attacks'   : statsWhite.attacks - statsBlack.attacks
         }
     }
 
 
 }
+
 
 
 //let board = new Board();

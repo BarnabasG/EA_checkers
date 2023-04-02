@@ -1,18 +1,23 @@
 import { Board } from "./board";
 //import { Population } from "./population";
-import { Player, Move, Status, BoardStats, PopulationSet, BoardDatabase } from "./types";
-import { getPresentBits, getBoardFomBin, printBoard, reduceCaptures, getInitBoardStats } from "./helper";
+import { Player, Move, BoardStats } from "./types";
+import { getPresentBits, getBoardFomBin, printBoard, getBestBoardDefault } from "./helper";
 
 
 
 export class CheckersGame {
-    readonly board: Board;
-    readonly player: Player;
+    //TODO read only
+    //readonly board: Board;
+    public board: Board;
+    //readonly player: Player;
+    public player: Player;
     readonly bestBoard: BoardStats;
+    //readonly moveIndex: number;
     //readonly population: Population;
     //readonly status: number;
 
-    //private evaluatedNodeCount: number;
+    //public evaluatedNodeCount: number;
+    //public evaluatedNodeCountThisMove: number;
 
     private moveList: Move[] | undefined = undefined;
 
@@ -23,14 +28,17 @@ export class CheckersGame {
         //boardStatsDatabase: BoardDatabase,
         board: Board = new Board(),
         turn: Player = Player.WHITE,
-        bestBoard: BoardStats = getInitBoardStats(),
+        //moveIndex: number = 0,
+        bestBoard: BoardStats = getBestBoardDefault(),//getInitBoardStats(),
         //population: Population = new Population(10),
         //status: number = 0,
-        //evaluatedNodeCount: number = 0
+        //evaluatedNodeCount: number = 0,
+        //evaluatedNodeCountThisMove: number = 0
     ) {
         this.board = board;
         this.player = turn;
         this.bestBoard = bestBoard;
+        //this.moveIndex = moveIndex;
         //this.boardStatsDatabase = boardStatsDatabase;
         //this.population = population;
         //this.status = status;
@@ -48,7 +56,7 @@ export class CheckersGame {
     makeMove(move: Move): CheckersGame {
         if (!this.getMoves().includes(move)) {
             console.log('player', this.player)
-            printBoard(this.board.white, this.board.black, this.board.king);
+            //printBoard(this.board.white, this.board.black, this.board.king);
             console.log('move', move)
             console.log('moves', this.getMoves())
             throw new Error('invalid move');
@@ -56,12 +64,14 @@ export class CheckersGame {
         if (move.captures) getBoardFomBin(move.captures)
         const nextBitboard = this.player === Player.WHITE ? this.board.makeMoveWhite(move) : this.board.makeMoveBlack(move);
         const nextPlayerToMove = this.player === Player.WHITE ? Player.BLACK : Player.WHITE;
-        const nextBestBoard = this.updateBoardStats();
+
+        //const nextBestBoard = this.updateBoardStats();
     
-        return new CheckersGame(nextBitboard, nextPlayerToMove, nextBestBoard);
+        //return new CheckersGame(nextBitboard, nextPlayerToMove, this.moveIndex+1)//, nextBestBoard);
+        return new CheckersGame(nextBitboard, nextPlayerToMove)
     }
 
-    private updateBoardStats(): BoardStats {
+    /*private updateBoardStats(): BoardStats {
         //console.log('updateBoardStats')
         let newBestBoard = this.board.getBoardStats();
         //console.log('best', this.bestBoard)
@@ -69,7 +79,7 @@ export class CheckersGame {
         for (const key in newBestBoard) newBestBoard[key] = Math.max(Math.abs(newBestBoard[key]), this.bestBoard[key]);
         //console.log('after', newBestBoard)
         return newBestBoard;
-    }
+    }*/
 
     private getMoveList(moveablePieces: number): Move[] {
         return getPresentBits(moveablePieces).flatMap(moveablePieces => this.getMovesFromCoord(moveablePieces));
@@ -134,15 +144,5 @@ export class CheckersGame {
         return capturesFound;
     }
 
-
-    /*getStatus(): Status {
-        if (this.getMoves().length === 0) {
-            console.log(this.getMoves());
-            return this.player === Player.WHITE
-                ? Status.BLACK_WON
-                : Status.WHITE_WON;
-        }
-        return Status.PLAYING;
-    }*/
 
 }

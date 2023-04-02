@@ -1,0 +1,6 @@
+{"population":{
+"0":{"weights":{"pieces":10,"kings":1,"avrDist":1,"backline":1,"corners":1,"edges":1,"centre2":1,"centre4":1,"centre8":1,"defended":1,"attacks":1},"score":0,"evaluationDB":{}},
+"1":{"weights":{"pieces":1,"kings":10,"avrDist":1,"backline":1,"corners":1,"edges":1,"centre2":1,"centre4":1,"centre8":1,"defended":1,"attacks":1},"score":0,"evaluationDB":{}},
+"2":{"weights":{"pieces":1,"kings":1,"avrDist":10,"backline":1,"corners":1,"edges":1,"centre2":1,"centre4":1,"centre8":1,"defended":1,"attacks":1},"score":0,"evaluationDB":{}},
+"3":{"weights":{"pieces":1,"kings":1,"avrDist":1,"backline":10,"corners":1,"edges":1,"centre2":1,"centre4":1,"centre8":1,"defended":1,"attacks":1},"score":0,"evaluationDB":{}}
+},"generation":0,"generation time":20000}
