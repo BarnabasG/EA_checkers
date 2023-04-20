@@ -1,5 +1,5 @@
 .history
-.vscode/settings.json
+.vscode
 node_modules
 .idea
 dist
