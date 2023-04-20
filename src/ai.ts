@@ -1,6 +1,7 @@
 import { CheckersGame } from "./checkers";
+import { BloomDatabase, HashMap } from "./database";
 import { generateKeyComplete, getPieceCount, printBoard, randomNeg } from "./helper";
-import { BoardStats, Move, Player, TrainedBot, WeightSet } from "./types";
+import { BoardStats, Evaluations, Move, Player, TrainedBot, WeightSet } from "./types";
 
 export var EvalHit: number = 0;
 export var EvalMiss: number = 0;
@@ -14,8 +15,9 @@ const MAX_EVAL = 1000000;
 //export function minimax(checkers: CheckersGame, depth: number, weights: BoardStats, evaluationDB: evaluations): Move {
     
 var evaluatedNodeCountThisMove = 0;
+//var searchDepth = 0;
 
-export function minimax(checkers: CheckersGame, depth: number, population: Map<number, WeightSet>, index: number): Move {    
+export function minimax(checkers: CheckersGame, depth: number, population: Map<number, WeightSet>, index: number, db: BloomDatabase | HashMap): Move {    
     let bestScore = Number.NEGATIVE_INFINITY;
     let bestMove!: Move;// = { start: 0, end: 0, captures: 0 };
     //printBoard(checkers.board.white, checkers.board.black, checkers.board.king)
@@ -29,6 +31,7 @@ export function minimax(checkers: CheckersGame, depth: number, population: Map<n
     //const weights = member.weights;
 
     evaluatedNodeCountThisMove = 0;
+    //searchDepth = depth;
     //let evaluatedNodeCountThisMove = 0;
 
     //let maximisingPlayer = checkers.player
@@ -50,24 +53,36 @@ export function minimax(checkers: CheckersGame, depth: number, population: Map<n
 
         let key = generateKeyComplete(next.board.white, next.board.black, next.board.king)
         try {
-            if (key in population.get(index)!.evaluationDB) {
+            let e = searchDB(key, member, depth)
+            if (e) {
+                evaluation = Player.WHITE ? e : -e;
+                EvalHit++;
+            } else {
+                evaluation = alphaBetaSearch(next, depth - 1, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, member, db)
+                let evaluationWhite = checkers.player == Player.WHITE ? evaluation : -evaluation;
+                member.evaluationDB[key] = {eval: evaluationWhite, depth: depth}
+                EvalMiss++;
+            }
+
+            /*if (key in population.get(index)!.evaluationDB) {
             //if (member.evaluationDB.has(key)) {
                 if (member.evaluationDB[key]!.depth >= depth) {
                     evaluation =  population.get(index)!.evaluationDB[key]!.eval
                     //checkers.evaluatedNodeCount++;
-                    evaluatedNodeCountThisMove++;
+                    //evaluatedNodeCountThisMove++;
                     EvalHit++;
                 } else {
-                    evaluation = alphaBetaSearch(next, depth - 1, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, member.weights);
+                    evaluation = alphaBetaSearch(next, depth - 1, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, member);
+                    //evaluation = alphaBetaSearch(next, depth - 1, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, member.weights);
                     //let e  = alphaBetaSearch(next, depth - 1, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, member.weights, maximisingPlayer);
                     //depth % 2 == 0 ? evaluation = e : evaluation = -e;
                     //evaluation = -alphaBetaSearch(next, depth - 1, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, population, index);
                     member.evaluationDB[key] = {eval: evaluation, depth: depth}
-                    evaluatedNodeCountThisMove++;
+                    //evaluatedNodeCountThisMove++;
                     EvalMiss++;
                 } 
             } else {
-                evaluation = alphaBetaSearch(next, depth - 1, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, member.weights);
+                evaluation = alphaBetaSearch(next, depth - 1, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, member);
                 //let e  = alphaBetaSearch(next, depth - 1, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, member.weights, maximisingPlayer);
                 //depth % 2 == 0 ? evaluation = e : evaluation = -e;
                 //evaluation = -alphaBetaSearch(next, depth - 1, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, population, index);
@@ -76,9 +91,10 @@ export function minimax(checkers: CheckersGame, depth: number, population: Map<n
                 //population.set(index, member);
                 //population.get(index).evaluationDB[key] = {eval: evaluation, depth: depth}
                 //console.log('eval miss')
-                evaluatedNodeCountThisMove++;
                 EvalMiss++;
             }/**/
+
+            evaluatedNodeCountThisMove++;
 
             if (evaluation >= bestScore) {
                 //console.log('new best move', evaluation)
@@ -114,7 +130,7 @@ export function minimax(checkers: CheckersGame, depth: number, population: Map<n
 */  
 
 
-export function getBestMoveTrainedBot(checkers: CheckersGame, depth: number, bot: TrainedBot): { move: Move, evaluatedNodeCount: number } {    
+export function getBestMoveTrainedBot(checkers: CheckersGame, depth: number, bot: TrainedBot, db: BloomDatabase | HashMap): { move: Move, evaluatedNodeCount: number } {    
     let bestScore = Number.NEGATIVE_INFINITY;
     let bestMove: Move;
 
@@ -166,15 +182,25 @@ export function getBestMoveTrainedBot(checkers: CheckersGame, depth: number, bot
         let evaluation: number;
 
         //evaluation = alphaBetaSearch(next, depth - 1, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, bot.weights);
-        EvalMiss++;
+        //EvalMiss++;
         
         let key = generateKeyComplete(next.board.white, next.board.black, next.board.king)
-        //if (key in bot.evaluationDB) {
-        if (bot.evaluationDB.has(key)) {
-            //if (bot.evaluationDB[key].depth >= depth) {
-            if (bot.evaluationDB.get(key)!.depth >= depth) {
-                //evaluation = bot.evaluationDB[key].eval
-                evaluation = bot.evaluationDB.get(key)!.eval
+        let e = searchDB(key, bot, depth)
+        if (e) {
+            evaluation = Player.WHITE ? e : -e;
+            EvalHit++;
+        } else {
+            evaluation = alphaBetaSearch(next, depth - 1, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, bot, db)
+            let evaluationWhite = checkers.player == Player.WHITE ? evaluation : -evaluation;
+            bot.evaluationDB[key] = {eval: evaluationWhite, depth: depth}
+            EvalMiss++;
+        }
+        /*if (key in bot.evaluationDB) {
+        //if (bot.evaluationDB.has(key)) {
+            if (bot.evaluationDB[key].depth >= depth) {
+            //if (bot.evaluationDB.get(key)!.depth >= depth) {
+                evaluation = bot.evaluationDB[key].eval
+                //evaluation = bot.evaluationDB.get(key)!.eval
                 evaluatedNodeCountThisMove++;
                 EvalHit++;
             } else {
@@ -182,17 +208,18 @@ export function getBestMoveTrainedBot(checkers: CheckersGame, depth: number, bot
                 //let e  = alphaBetaSearch(next, depth - 1, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, bot.weights);
                 //depth % 2 == 0 ? evaluation = e : evaluation = -e;
                 //evaluation = -alphaBetaSearch(next, depth - 1, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, population, index);
-                bot.evaluationDB.put(key, {eval: evaluation, depth: depth})
+                //bot.evaluationDB.put(key, {eval: evaluation, depth: depth})
+                bot.evaluationDB[key] = {eval: evaluation, depth: depth}
                 EvalMiss++;
             } 
         } else {
             evaluation = alphaBetaSearch(next, depth - 1, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, bot.weights);
             //let e  = alphaBetaSearch(next, depth - 1, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, bot.weights);
             //depth % 2 == 0 ? evaluation = e : evaluation = -e;
-            bot.evaluationDB.put(key, {eval: evaluation, depth: depth})
-            //bot.evaluationDB[key] = {eval: evaluation, depth: depth}
+            //bot.evaluationDB.put(key, {eval: evaluation, depth: depth})
+            bot.evaluationDB[key] = {eval: evaluation, depth: depth}
             EvalMiss++;
-        }/**/
+        }*/
        
 
 
@@ -220,17 +247,24 @@ export function getBestMoveTrainedBot(checkers: CheckersGame, depth: number, bot
     return
 }*/
 
-export function naiveMinimax(checkers: CheckersGame, depth: number): Move {    
+export function naiveMinimax(checkers: CheckersGame, depth: number, db: BloomDatabase | HashMap): Move {    
     let bestScore = Number.NEGATIVE_INFINITY;
     let bestMove!: Move;
 
     const moves = checkers.getMoves();
 
     if (moves.length == 1) return moves[0];
+
+    let emptyWeights: WeightSet = {
+        weights: {},
+        score: 0,
+        evaluationDB: {}
+    }
   
     for (const move of moves) { 
         const next = checkers.makeMove(move);
-        let evaluation: number = alphaBetaSearch(next, depth - 1, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, {}, true);
+        //let evaluation: number = alphaBetaSearch(next, depth - 1, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, {}, true);
+        let evaluation: number = alphaBetaSearch(next, depth - 1, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, emptyWeights, db, true);
         if (evaluation >= bestScore) {
             bestScore = evaluation;
             bestMove = move;
@@ -241,52 +275,90 @@ export function naiveMinimax(checkers: CheckersGame, depth: number): Move {
 
 
 //function alphaBetaSearch(checkers: CheckersGame, depth: number, alpha: number, beta: number, population: Map<number, WeightSet>, index: number) {
-function alphaBetaSearch(checkers: CheckersGame, depth: number, alpha: number, beta: number, weights: BoardStats, naive: boolean = false) {
+/*function alphaBetaSearch1(checkers: CheckersGame, depth: number, alpha: number, beta: number, weights: BoardStats, naive: boolean = false) {
 
-    //const member = population.get(index);
-
-    //if (evaluatedNodeCountThisMove > 500000) {
-    //    console.log('AB evaluated nodes surpassed', evaluatedNodeCountThisMove)
-    //    return quiescenceSearch(checkers, alpha, beta, weights);
-    //}
 
     if (depth === 0) return quiescenceSearch(checkers, alpha, beta, weights, naive);
-    //if (depth === 0) return quiescenceSearch(checkers, alpha, beta, whiteWeights, blackWeights, evaluatingPlayer);
-    //if (depth === 0) return quiescenceSearch(checkers, alpha, beta, whiteWeights, blackWeights);
 
     const moves = checkers.getMoves();
     //console.log(depth, moves.length)
 
     if (moves.length == 0) {
-        //return checkers.player === Player.WHITE ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
         evaluatedNodeCountThisMove++;
-        //return checkers.player === Player.WHITE ? MAX_EVAL+depth : -(MAX_EVAL+depth);
-        //return maximisingPlayer == checkers.player ? -(MAX_EVAL+depth) : MAX_EVAL+depth;
-        //return -(MAX_EVAL+depth);
-        return MAX_EVAL+depth; //odd || checkers.player == maximisingPlayer ? -(MAX_EVAL+depth) : MAX_EVAL+depth;
+        return MAX_EVAL+depth;
     }
   
     for (const move of moves) {
     //for (const move of moves) {
         const next = checkers.makeMove(move);
         const evaluation = -alphaBetaSearch(next, depth - 1, -beta, -alpha, weights, naive);
-        /*let evaluation: number;
+        //const evaluation = -alphaBetaSearch(next, depth - 1, -beta, -alpha, whiteWeights, blackWeights, evaluatingPlayer == Player.WHITE ? Player.BLACK : Player.WHITE);
+        //const evaluation = -alphaBetaSearch(next, depth - 1, -beta, -alpha, whiteWeights, blackWeights);
+        if (evaluation >= beta) return beta;
+        alpha = Math.max(evaluation, alpha);
+    }
+  
+    return alpha;
+}*/
+
+function alphaBetaSearch(checkers: CheckersGame, depth: number, alpha: number, beta: number, bot: WeightSet | TrainedBot, db: BloomDatabase | HashMap, naive: boolean = false) {
+
+
+    if (depth === 0) return quiescenceSearch(checkers, alpha, beta, bot.weights, db, naive);
+
+    const moves = checkers.getMoves();
+    //console.log(depth, moves.length)
+
+    if (moves.length == 0) {
+        evaluatedNodeCountThisMove++;
+        return MAX_EVAL+depth;
+    }
+  
+    for (const move of moves) {
+    //for (const move of moves) {
+        const next = checkers.makeMove(move);
+        //const evaluation = -alphaBetaSearch(next, depth - 1, -beta, -alpha, weights, naive);
+        let evaluation: number;
         let key = generateKeyComplete(next.board.white, next.board.black, next.board.king)
-        if (key in population.get(index).evaluationDB) {
-            if (member.evaluationDB[key].depth >= depth) {
-                evaluation =  population.get(index).evaluationDB[key].eval
+        let e = searchDB(key, bot, depth)
+
+        if (e) {
+            evaluation = Player.WHITE ? -e : e;
+            EvalHit++;
+        } else {
+            evaluation = -alphaBetaSearch(next, depth - 1, -beta, -alpha, bot, db, naive)
+            if (depth >= 5) {
+                let evaluationWhite = checkers.player == Player.WHITE ? -evaluation : evaluation;
+                bot.evaluationDB[key] = {eval: evaluationWhite, depth: depth}
+            }
+            EvalMiss++;
+        }
+
+        /*if (e) {
+            evaluation = flipEval(searchDepth-depth) * e
+            EvalHit++;
+        } else {
+            evaluation = -alphaBetaSearch(next, depth - 1, -beta, -alpha, bot, naive);
+            bot.evaluationDB[key] = {eval: flipEval(searchDepth-depth) * evaluation, depth: depth}
+            EvalMiss++;
+        }*/
+        /*if (key in bot.evaluationDB) {
+            //if (member.evaluationDB.has(key)) {
+            if (bot.evaluationDB[key]!.depth >= depth) {
+                evaluation = bot.evaluationDB[key]!.eval
+                //checkers.evaluatedNodeCount++;
+                evaluatedNodeCountThisMove++;
                 EvalHit++;
             } else {
-                evaluation = -alphaBetaSearch(next, depth - 1, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, population, index);
-                member.evaluationDB[key] = {eval: evaluation, depth: depth}
+                evaluation = -alphaBetaSearch(next, depth - 1, -beta, -alpha, bot, naive);
+                bot.evaluationDB[key] = {eval: evaluation, depth: depth}
+                evaluatedNodeCountThisMove++;
                 EvalMiss++;
             } 
         } else {
-            evaluation = -alphaBetaSearch(next, depth - 1, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, population, index);
-            member.evaluationDB[key] = {eval: evaluation, depth: depth}
-            //population.set(index, member);
-            //population.get(index).evaluationDB[key] = {eval: evaluation, depth: depth}
-            //console.log('eval miss')
+            evaluation = -alphaBetaSearch(next, depth - 1, -beta, -alpha, bot, naive);
+            bot.evaluationDB[key] = {eval: evaluation, depth: depth}
+            evaluatedNodeCountThisMove++;
             EvalMiss++;
         }*/
         //const evaluation = -alphaBetaSearch(next, depth - 1, -beta, -alpha, whiteWeights, blackWeights, evaluatingPlayer == Player.WHITE ? Player.BLACK : Player.WHITE);
@@ -299,7 +371,7 @@ function alphaBetaSearch(checkers: CheckersGame, depth: number, alpha: number, b
 }
 
 
-function quiescenceSearch(checkers: CheckersGame, alpha: number, beta: number, weights: BoardStats, naive?: boolean) {
+function quiescenceSearch(checkers: CheckersGame, alpha: number, beta: number, weights: BoardStats, db: BloomDatabase | HashMap, naive?: boolean) {
 //function quiescenceSearch(checkers: CheckersGame, alpha: number, beta: number, weights: BoardStats, maximisingPlayer: Player) {
 //function quiescenceSearch(checkers: CheckersGame, alpha: number, beta: number, whiteWeights: BoardStats, blackWeights: BoardStats, evaluatingPlayer: Player) {
 //function quiescenceSearch(checkers: CheckersGame, alpha: number, beta: number, whiteWeights: BoardStats, blackWeights: BoardStats) {
@@ -309,8 +381,10 @@ function quiescenceSearch(checkers: CheckersGame, alpha: number, beta: number, w
     //    //return quiescenceSearch(checkers, alpha, beta, weights);
     //    return 0;
     //}
-    
-    
+
+    //if (!naive && !weights) {
+    //    throw new Error('Weights must be defined if not using naive evaluation')
+    //}
 
     const moves = checkers.getMoves();
     
@@ -330,7 +404,7 @@ function quiescenceSearch(checkers: CheckersGame, alpha: number, beta: number, w
 
     //const evaluation = checkers.player == Player.WHITE ? evaluateBoard(checkers, weights): 
     //const evaluation = evaluateBoard(checkers, weights)
-    const evaluation = naive ? evaluateBoardNaive(checkers) : evaluateBoard(checkers, weights);
+    const evaluation = naive ? evaluateBoardNaive(checkers, db) : evaluateBoard(checkers, weights!, db);
 
     
     //console.log('evaluating player', evaluatingPlayer)
@@ -353,7 +427,7 @@ function quiescenceSearch(checkers: CheckersGame, alpha: number, beta: number, w
     
         const next = checkers.makeMove(move);
         
-        const nextEvaluation = -quiescenceSearch(next, -beta, -alpha, weights, naive);
+        const nextEvaluation = -quiescenceSearch(next, -beta, -alpha, weights, db, naive);
         //const nextEvaluation = -quiescenceSearch(next, -beta, -alpha, whiteWeights, blackWeights, evaluatingPlayer == Player.WHITE ? Player.BLACK : Player.WHITE);
         //const nextEvaluation = -quiescenceSearch(next, -beta, -alpha, whiteWeights, blackWeights);
     
@@ -372,9 +446,9 @@ function quiescenceSearch(checkers: CheckersGame, alpha: number, beta: number, w
 const PIECE_COUNT_CONSTANT = 24;
 const BOARD_STAT_COUNT = 11;
 
-export function evaluateBoard(checkers: CheckersGame, weights: BoardStats): number {
+export function evaluateBoard(checkers: CheckersGame, weights: BoardStats, db: BloomDatabase | HashMap): number {
     const pieceCount: number = getPieceCount(checkers.board.white | checkers.board.black);
-    const stats: BoardStats = checkers.board.getBoardStats();
+    const stats: BoardStats = checkers.board.getBoardStats(db);
     let score: number = 0;
     let keys = Object.keys(stats);
     //let index: number = 0;
@@ -395,12 +469,12 @@ export function evaluateBoard(checkers: CheckersGame, weights: BoardStats): numb
     return checkers.player == Player.BLACK ? score : -score;
 }
 
-export function evaluateBoardNaive(checkers: CheckersGame, getStats: boolean = true): number {
+export function evaluateBoardNaive(checkers: CheckersGame, db: BloomDatabase | HashMap, getStats: boolean = true): number {
 
     //if (getStats) checkers.board.getBoardStats(true);
     if (getStats) {
         const p = checkers.player === Player.WHITE ? checkers.board.black : checkers.board.white;
-        checkers.board.persistStatsForValue(p, checkers.player)
+        checkers.board.persistStatsForValue(db, p, checkers.player)
         return 0;
     } else {
         let score = getPieceCount(checkers.board.white) - getPieceCount(checkers.board.black);
@@ -408,6 +482,23 @@ export function evaluateBoardNaive(checkers: CheckersGame, getStats: boolean = t
     }
 
 }
+
+
+
+function searchDB(key: string, bot: WeightSet | TrainedBot, depth: number): number | null {
+    if (key in bot.evaluationDB) {
+        if (bot.evaluationDB[key]!.depth >= depth) {
+            return bot.evaluationDB[key]!.eval
+        }
+    } 
+    return null;
+}
+
+//function flipEval(depth: number): number {
+//    return depth % 2 === 1 ? 1 : -1;
+//}
+
+
 
 // TODO Testing
 /*

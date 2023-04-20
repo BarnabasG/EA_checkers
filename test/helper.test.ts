@@ -1,5 +1,5 @@
 import { describe, expect, test } from '@jest/globals';
-import { areListsEqual, checkDraw, decToBin, generateInitialPopulation, generateKey, generateKeyComplete, getAvrDist, getBoardFomBin, getPieceCount, getPopulationMatches, getPresentBitIndexes, getPresentBits, getRandomSample, getWeights, loadPopFromJSON, pad, permutations, roundTo } from '../src/helper';
+import { areListsEqual, checkDraw, decToBin, generateInitialPopulation, generateKey, generateKeyComplete, getAvrDist, getBoardFomBin, getPieceCount, getPopulationMatches, getPresentBitIndexes, getPresentBits, getWeights, loadPopFromJSON, pad, permutations, roundTo } from '../src/helper';
 import { Status, WeightInit, WeightSet } from '../src/types';
 
 
@@ -282,12 +282,12 @@ describe('generateInitialPopulation', () => {
     });
 });
 
-describe('getRandomSample', () => {
+/*describe('getRandomSample', () => {
     test('return random samle', () => {
         expect(getRandomSample([0,1,2,3,4,5], 3))
         .toHaveLength(3);
     });
-});
+});*/
 
 
 

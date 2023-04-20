@@ -20,7 +20,6 @@ app.use(bodyParser.json())
 app.use(express.static('public'));
 
 app.get('/', (req: Request, res: Response) => {
-
     res.sendFile(path.join(__dirname, '../index.html'));
 });
 
@@ -34,7 +33,7 @@ app.get('/data', (req: Request, res: Response) => {
     const data = {
         '__dirname': __dirname,
         'imgSrc': path.join(__dirname, '../images'),
-        'playAs': 'w'
+        'playAs': game.playAs == Player.WHITE ? 'w' : 'b',
     };
 
     // Return the data in JSON format
@@ -43,7 +42,9 @@ app.get('/data', (req: Request, res: Response) => {
 
 app.post('/start', (req: Request, res: Response) => {
     
-    const { playAs } = req.body;
+    console.log('/start', req.body)
+    const playAs = req.body.start;
+    console.log('playAs', playAs)
     startNewGame(playAs)
   
     // Return the data in JSON format
@@ -52,6 +53,7 @@ app.post('/start', (req: Request, res: Response) => {
 
 
 function startNewGame(playAs: string = 'w') {
+    console.log("starting new game as " + playAs)
     resetBoard()
     game = new PlayGame(playAs == 'w' ? Player.WHITE : Player.BLACK)
     printBoard(game.checkers.board.white, game.checkers.board.black, game.checkers.board.king)
@@ -122,11 +124,11 @@ app.post('/play', (req: Request, res: Response) => {
 function extractMoveDetails(move: Move, gameover: Status) {
     let captures = ''
     if (move.captures) {
-        let c = getPresentBitIndexes(move.captures).reverse().map(bit => bitwiseIndexToDisplayIndex(bit))
+        let c = getPresentBitIndexes(move.captures).reverse().map(bit => bitIndexToWCDFIndex(bit))
         captures = ` (${c.join(',')})`
     }
-    const s = bitwiseIndexToDisplayIndex(getPresentBitIndexes(move.start)[0])
-    const e = bitwiseIndexToDisplayIndex(getPresentBitIndexes(move.end)[0])
+    const s = bitIndexToWCDFIndex(getPresentBitIndexes(move.start)[0])
+    const e = bitIndexToWCDFIndex(getPresentBitIndexes(move.end)[0])
     const moveString = `${s}-${e}${captures}`
 
     const playMoveData = {
@@ -155,7 +157,7 @@ app.post('/play', (req: Request, res: Response) => {
     
     const playMoveData = extractMoveDetails(move, gameover)
 
-    playMoveData["moveString"] = String(game.nonManMoves)
+    //playMoveData["moveString"] = String(game.nonManMoves)
 
     //const data = playMove(playMoveData.remove, playMoveData.add, playMoveData.king, playMoveData.addColour)
 
@@ -177,15 +179,21 @@ app.get('/aimove', (req: Request, res: Response) => {
 
 
 app.post('/select_piece', (req, res) => {
-    const { id } = req.body;
+    //const data = req.body
+    //console.log('select_piece', data)
+    //console.log(data.start)
+    const id = req.body.start;
     console.log(`Received piece id: ${id}`);
     if (game.checkers.player !== game.playAs) res.send(false)
     //res.send(`Returning piece id: ${id}`);
+    
     //const moves = game.checkers.getMoves();
     //let moveSquares: number[] = []
     //moves.forEach(move => {
     //    if (move.start === +id) moveSquares.push(game.BIN[move.end])
+    
     const endSquares = game.getEndSquares(+id)
+    console.log('endSquares', endSquares)
     res.send(endSquares);
 });
 
@@ -200,8 +208,17 @@ app.post('/check_move', (req, res) => {
 });
 
 
-function bitwiseIndexToDisplayIndex(bitIndex: number): number {
-    return (Math.floor(bitIndex / 4) * 4) + (3 - bitIndex % 4)
+//function bitwiseIndexToDisplayIndex(bitIndex: number): number {
+//    return (Math.floor(bitIndex / 4) * 4) + (3 - bitIndex % 4)
+//}
+
+function bitIndexToWCDFIndex(bitIndex: number): number {
+    return 32 - bitIndex
+    //if (Math.floor(index/8) % 2 == 0) {
+    //    return index % 2 == 1 ? Math.floor((index)) + 1 : '';
+    //} else {
+    //    return index % 2 == 0 ? Math.floor((index)) + 1: '';
+    //}
 }
 
 

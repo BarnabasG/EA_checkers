@@ -1,10 +1,11 @@
 import { minimax, evaluateBoard, naiveMinimax } from "./ai";
 import { CheckersGame } from "./checkers";
 import { BoardStats, GenerationParams, Move, Pattern, Player, PopStats, PopulationParams, Result, Status, TestResults, TestScore, TrainingParams, WeightInit, WeightSet } from "./types";
-import { getPopulationMatches, printBoard, boardStatsDatabase, generateKey, checkDraw, writeToFile, getRandomSample, loadPopFromJSON, generateResultsTable, permutations, generateInitialPopulation, roundTo, getStandardDeviation, getPieceCount } from "./helper";
+import { getPopulationMatches, printBoard, generateKey, checkDraw, writeToFile, loadPopFromJSON, generateResultsTable, permutations, generateInitialPopulation, roundTo, getStandardDeviation, getPieceCount, getTime } from "./helper";
+//import { getPopulationMatches, printBoard, boardStatsDatabase, generateKey, checkDraw, writeToFile, loadPopFromJSON, generateResultsTable, permutations, generateInitialPopulation, roundTo, getStandardDeviation, getPieceCount, getTime } from "./helper";
 import { Population } from "./population";
 import { STANDARD_TRAINING_PATTERNS } from "./trainingPatterns";
-import { Board } from "./board";
+import { HashMap, generateDatabase } from './database';
 
 
 
@@ -20,6 +21,7 @@ console.log('saved layouts', Object.keys(boardStatsDatabase).length);*/
 //Will look at draft if sent before friday 24th March /////////
 // add para on what else you will cover and what you want feedback on
 
+const DRAW_SCORE = 0.4;
 
 export class Checkers {
 
@@ -29,6 +31,7 @@ export class Checkers {
     public bestWeights!: BoardStats;
     private testDepth: number;
     private guidedWinners: BoardStats[];
+    public boardStatsDatabase: HashMap;
     //readonly matches: number[][];
     
     //readonly populationSize: number;
@@ -49,6 +52,7 @@ export class Checkers {
         this.guidedWinners = [];
         this.testDepth = 5;
         this.depth = 5;
+        this.boardStatsDatabase = new HashMap();
     }
 
 
@@ -58,7 +62,7 @@ export class Checkers {
 
         if (trainingParams == undefined) {
             trainingParams = {
-                standardMethod: 'STP1',
+                trainingMethod: 'STP1',
                 standardStartGeneration: 0,
                 generations: 5
             }
@@ -66,10 +70,10 @@ export class Checkers {
 
 
         //if (trainingParams.standard) {
-            //let method = trainingParams.standardMethod || 'RR'; 
+            //let method = trainingParams.trainingMethod || 'RR'; 
             //this.standardTraining(method, trainingParams.generations);
             //this.standardTraining(trainingParams);
-        this.standardTraining(trainingParams.standardMethod!);
+        this.standardTraining(trainingParams.trainingMethod!);
         //} else {
         //    this.customTraining(trainingParams);
         //}
@@ -129,8 +133,8 @@ export class Checkers {
                 this.population.population[index2]['score'] += 1;
                 console.log('black won', index1, index2)
             } else if (status === 0) {
-                this.population.population[index1]['score'] += 0.5;
-                this.population.population[index2]['score'] += 0.5;
+                this.population.population[index1]['score'] += DRAW_SCORE;
+                this.population.population[index2]['score'] += DRAW_SCORE;
                 console.log('draw', index1, index2)
             }
         }*/
@@ -187,14 +191,14 @@ export class Checkers {
             //let move = minimax(checkers, this.depth, weights);
             //console.log('using weights from', checkers.player === Player.WHITE ? 'white' : 'black')
             //let move = minimax(checkers, this.depth, checkers.player === Player.WHITE ? whiteWeights : blackWeights);
-            let move = minimax(checkers, this.depth, this.population.population, checkers.player === Player.WHITE ? indexes[0] : indexes[1]);
+            let move = minimax(checkers, this.depth, this.population.population, checkers.player === Player.WHITE ? indexes[0] : indexes[1], this.boardStatsDatabase);
             //let move = minimax(checkers, this.depth, whiteWeights, blackWeights);
             //console.log('move', move)
             checkers = checkers.makeMove(move);
 
             //console.log("here")
 
-            move.end && checkers.board.king ? nonManMoves++ : nonManMoves = 0;
+            (move.end & checkers.board.king) && !move.captures ? nonManMoves++ : nonManMoves = 0;
             boardStack.push([checkers.board.white, checkers.board.black, checkers.board.king]);
             if (boardStack.length > 5) boardStack.shift();
 
@@ -345,7 +349,7 @@ export class Checkers {
         const maxDefGen = Math.max(...Object.getOwnPropertyNames(pattern).map(Number).filter(n => n !== 999));
 
         var defaultValues: TrainingParams = {
-            //standardMethod: 'RR',
+            //trainingMethod: 'RR',
             standardStartGeneration: 0,
             depth: undefined,
             moveLimit: 150,
@@ -438,10 +442,10 @@ export class Checkers {
             for (let j = 0; j < results.length; j++) {
                 if (results[j] === 0) {
                     value = this.population.population.get(matches[j][0]);
-                    value['score'] += 0.5;
+                    value['score'] += DRAW_SCORE;
                     this.population.population.set(matches[j][0], value);
                     value = this.population.population.get(matches[j][1]);
-                    value['score'] += 0.5;
+                    value['score'] += DRAW_SCORE;
                     this.population.population.set(matches[j][1], value);
                     //console.log('draw', index1, index2)
                 } else {
@@ -468,10 +472,10 @@ export class Checkers {
                 });
                 if (status === 0) {
                     value = this.population.population.get(index1);
-                    value['score'] += 0.5;
+                    value['score'] += DRAW_SCORE;
                     this.population.population.set(index1, value);
                     value = this.population.population.get(index2);
-                    value['score'] += 0.5;
+                    value['score'] += DRAW_SCORE;
                     this.population.population.set(index2, value);
                     //console.log('draw', index1, index2)
                 } else {
@@ -572,24 +576,27 @@ export class Checkers {
         const maxDefGen = Math.max(...Object.getOwnPropertyNames(pattern).map(Number).filter(n => n !== 999));
 
         var defaultValues: TrainingParams = {
-            //standardMethod: 'RR',
+            //trainingMethod: 'RR',
             standardStartGeneration: startGen,
             depth: undefined,
             moveLimit: 250,
             generations: maxDefGen,
             populationSize: undefined,
-            competitionType: 0,
-            selectionMethod: 0,
-            learningRate: undefined,
-            selectionPercent: undefined,
-            keepTopPercent: undefined,
-            randPercent: undefined,
-            tournamentSize: undefined,
+            competitionType: 0,     
             test: true,
             testDepth: 5,
             //populationSizePattern: undefined,
             popWeightInit: WeightInit.RANDOM,
             matchCount: undefined,
+            generationParams: {
+                selectionMethod: 0,
+                learningRate: undefined,
+                selectionPercent: undefined,
+                keepTopPercent: undefined,
+                randPercent: undefined,
+                tournamentSize: undefined,
+                rankBias: undefined,
+            }
         };
 
         
@@ -600,12 +607,14 @@ export class Checkers {
         let params: TrainingParams;
         let popParams: PopulationParams;
 
-        params = this.getParams(defaultValues, pattern[defaultValues.standardStartGeneration!]);
-
+        params = this.getParams(defaultValues, pattern[Math.min(maxDefGen, defaultValues.standardStartGeneration!)]);
+        
+        let popOverride: boolean = false;
         if (initPop) {
             popParams = {
                 population: initPop
             }
+            popOverride = true;
         } else {
             popParams = {
                 populationSize: params.populationSize,
@@ -613,6 +622,9 @@ export class Checkers {
             }
         }
         this.setPopulation(popParams!);
+        console.log(params)
+        console.log(this.population.population)
+
 
         let matches: number[][];
         //this.moveLimit = params.moveLimit;
@@ -643,12 +655,13 @@ export class Checkers {
 
         //const trainingInstance = 'generation_log/log_'.concat(new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-'), '.json');
         var trainingInstance: string;
+        let logtime = new Date().toLocaleString().replace(/:/g, '-').replace(/\//g, '-').replace(/ /g, '_').replace(/,/g, '');
         if (logfile) {
-            trainingInstance = `generation_log/${logfile}`;
-            writeToFile(trainingInstance, '\n\n//CONTINUING TRAINING//\n');
+            trainingInstance = `generation_log/${logfile}_CONTINUED_${logtime}`;
+            writeToFile(trainingInstance, `\n\n//CONTINUING TRAINING - ${logfile}//\n`);
             writeToFile('testScores_log.txt', '//CONTINUING TRAINING//'+logfile);
         } else {
-            trainingInstance = 'generation_log/log_'.concat(new Date().toLocaleString().replace(/:/g, '-').replace(/\//g, '-').replace(/ /g, '_').replace(/,/g, ''), '.txt');
+            trainingInstance = `generation_log/log_${logtime}.txt`;
         }
 
         //const maxDefGen = pattern.k
@@ -666,6 +679,10 @@ export class Checkers {
             console.log(`generation ${gen+1}/${params.generations} (${gen})`)
             params = this.getParams(defaultValues, pattern[Math.min(maxDefGen, gen)]);
             //this.population = new Population(pattern[gen].populationSize);
+            if (popOverride) {
+                params.populationSize = this.population.size;
+                popOverride = false;
+            }
 
             console.log(gen, params)
 
@@ -676,11 +693,12 @@ export class Checkers {
 
             //console.log(params)
 
-            const now = new Date();
-            const hours = now.getHours().toString().padStart(2, '0');
-            const minutes = now.getMinutes().toString().padStart(2, '0');
-            const seconds = now.getSeconds().toString().padStart(2, '0');
-            const time = `${hours}_${minutes}_${seconds}: `;
+            //const now = new Date();
+            //const hours = now.getHours().toString().padStart(2, '0');
+            //const minutes = now.getMinutes().toString().padStart(2, '0');
+            //const seconds = now.getSeconds().toString().padStart(2, '0');
+            //const time = `${hours}_${minutes}_${seconds}: `;
+            const time = getTime()
             writeToFile('testScores_log.txt', time.concat(" ",gen.toString(),": "));
             writeToFile('testScores_log.txt', JSON.stringify(params));
 
@@ -713,10 +731,10 @@ export class Checkers {
                 });*/
                 if (status > 2) {
                     value = this.population.population.get(index1)!;
-                    value['score'] += 0.5;
+                    value['score'] += DRAW_SCORE;
                     this.population.population.set(index1, value);
                     value = this.population.population.get(index2)!;
-                    value['score'] += 0.5;
+                    value['score'] += DRAW_SCORE;
                     this.population.population.set(index2, value);
                     //console.log('draw', index1, index2)
                 } else {
@@ -764,15 +782,19 @@ export class Checkers {
             //console.log('next generation id', Math.min(10, gen+1))
             console.log('saved evals', this.population.population.get(0)!.evaluationDB.length, this.population.population.get(1)!.evaluationDB.size, this.population.population.get(2)!.evaluationDB.size) 
             let patternIndex = Math.min(maxDefGen, gen+1);
-            if (gen+1 < params.generations!) this.population.nextGeneration({
-                size: pattern[patternIndex].populationSize,
-                selectionPercent: pattern[patternIndex].selectionPercent,
-                keepTopPercent: pattern[patternIndex].keepTopPercent,
-                selectionMethod: pattern[patternIndex].selectionMethod,
-                learningRate: pattern[patternIndex].learningRate,
-                randPercent: pattern[patternIndex].randPercent,
-                tournamentSize: pattern[patternIndex].tournamentSize,
-            });
+            //if  (pattern[patternIndex].generationParams !== undefined) {
+            //let genParams: GenerationParams | undefined = pattern[patternIndex].generationParams;
+            //}
+            if (gen+1 < params.generations!) this.population.nextGeneration(pattern[patternIndex].populationSize, params.generationParams);
+            //{
+            //    size: pattern[patternIndex].populationSize,
+            //    selectionPercent: pattern[patternIndex].generationParams!.selectionPercent,
+            //    keepTopPercent: pattern[patternIndex].generationParams!.keepTopPercent,
+            //    selectionMethod: pattern[patternIndex].generationParams!.selectionMethod,
+            //    learningRate: pattern[patternIndex].generationParams!.learningRate,
+            //    randPercent: pattern[patternIndex].generationParams!.randPercent,
+            //    tournamentSize: pattern[patternIndex].generationParams!.tournamentSize,
+            //});
             //console.log(population.getScores())
 
         }
@@ -808,10 +830,19 @@ export class Checkers {
         
     }
 
-    getParams(main: TrainingParams, override: TrainingParams): TrainingParams {
+    getParams(main: object, override: object): object {
         let mergedParams = Object.assign({}, main);
         for (const key in main) {
-            override.hasOwnProperty(key) ? (mergedParams as any)[key] = (override as any)[key]: (mergedParams as any)[key] = (main as any)[key];
+            if (override.hasOwnProperty(key)) {
+                if (typeof (main as any)[key] === 'object' && typeof (override as any)[key] === 'object') {
+                    (mergedParams as any)[key] = this.getParams((main as any)[key], (override as any)[key]);
+                } else {
+                    (mergedParams as any)[key] = (override as any)[key];
+                }
+            } else {
+                (mergedParams as any)[key] = (main as any)[key];
+            }
+            //override.hasOwnProperty(key) ? (mergedParams as any)[key] = (override as any)[key]: (mergedParams as any)[key] = (main as any)[key];
         };
         return mergedParams;
     }
@@ -1014,12 +1045,34 @@ export class Checkers {
 
 
         this.depth = _depth;
-
+        
+        //0.5 used as DRAW_SCORE for testing score to keep evaluation uniform
         resultsNaive.score = roundTo((resultsNaive.wins + (0.5 * resultsNaive.draws)) / (resultsNaive.wins + resultsNaive.losses + resultsNaive.draws), 3);
         resultsGuided.score = roundTo((resultsGuided.wins + (0.5 * resultsGuided.draws)) / (resultsGuided.wins + resultsGuided.losses + resultsGuided.draws), 3);
 
         resultsNaive.winloss = roundTo(resultsNaive.wins / (resultsNaive.wins + resultsNaive.losses), 3);
         resultsGuided.winloss = roundTo(resultsGuided.wins / (resultsGuided.wins + resultsGuided.losses), 3);
+
+        if (resultsNaive.wins == 0) {
+            resultsNaive.winloss = 0;
+            resultsNaive.score = 0;
+        } else if (resultsNaive.losses == 0 && resultsNaive.draws == 0) {
+            resultsNaive.winloss = 1;
+            resultsNaive.score = 1;
+        } else if (resultsNaive.losses == 0) {
+            resultsNaive.winloss = 1;
+        }
+
+        if (resultsGuided.wins == 0) {
+            resultsGuided.winloss = 0;
+            resultsGuided.score = 0;
+        } else if (resultsGuided.losses == 0 && resultsGuided.draws == 0) {
+            resultsGuided.winloss = 1;
+            resultsGuided.score = 1;
+        } else if (resultsGuided.losses == 0) {
+            resultsGuided.winloss = 1;
+        }
+
 
         resultsNaive.lossRate = roundTo(resultsNaive.losses / (resultsNaive.wins + resultsNaive.losses + resultsNaive.draws), 3);
         resultsGuided.lossRate = roundTo(resultsGuided.losses / (resultsGuided.wins + resultsGuided.losses + resultsGuided.draws), 3);
@@ -1134,10 +1187,10 @@ export class Checkers {
         this.depth = _depth;
 
         const table = generateResultsTable(results, bots, scores);
-        //console.log(table);
         console.table(table);
 
         writeToFile('testScores.txt', JSON.stringify(results));
+        writeToFile('testScores_log.txt', JSON.stringify(table));
         
 
         // get the maximum value using Math.max()
@@ -1175,9 +1228,10 @@ export class Checkers {
 
         console.log(`The key with the highest value is "${bestKey}"`);
         writeToFile('trainingWinners.json', JSON.stringify({"weights": this.population.population.get(bestKey!)!.weights, "generations": weightList.length}));
+        writeToFile('testScores_log.txt', getTime(), false)
         writeToFile('testScores_log.txt', 'Best Weights:' + JSON.stringify(JSON.stringify({"weights": this.population.population.get(bestKey!)!.weights, "generations": weightList.length})));
 
-        console.log('test results', results)
+        //console.log('test results', results)
         console.log('scores', scores)
 
         let bestParams = this.population.population.get(bestKey!)!.weights;
@@ -1288,7 +1342,11 @@ export class Checkers {
 
     }
 
-    generatePreloadedDatabase(openingDepth: number = 8, gameDepth: number = 9, maxPieces = 4): void {
+    generatePreloadedDatabase(openingDepth: number = 8, gameDepth: number = 9, maxPieces = 4) {
+        this.boardStatsDatabase.generate(openingDepth, gameDepth, maxPieces);
+    }
+
+    /*generatePreloadedDatabase(openingDepth: number = 8, gameDepth: number = 9, maxPieces = 4): void {
 
         let lengthBefore: number = boardStatsDatabase.getSize();
 
@@ -1366,7 +1424,7 @@ export class Checkers {
             i++
         });
         console.log(i)
-    }
+    }*/
 
 
 
@@ -1462,32 +1520,94 @@ export class Checkers {
     }*/
 
 
+    trial(): BoardStats {
+
+        let matches: number[][] = [];
+        let results: Result[] = []
+        let scores = new Map<number, number>()
+        //let bots: string[]
+
+        this.population = new Population({populationSize:0});
+
+        let _depth = this.depth;
+        this.depth = 7;
+
+        let testIds: number[] = [];
+        testIds.push(this.population.addTestBot());
+        testIds.push(this.population.addTestBot2());
+        matches.push([testIds[0], testIds[1]]);
+        matches.push([testIds[1], testIds[0]])
+        for (let i = 0; i < testIds.length; i++) {
+            scores.set(testIds[i], 0)
+        }
+
+        for (let j = 0; j < matches.length; j++) {
+            let index1 = matches[j][0];
+            let index2 = matches[j][1];
+            let status = this.compete([index1, index2]);
+            results.push({'white': index1, 'black': index2, 'result': status});
+            if (status > 2) {
+                scores.set(index1, scores.get(index1)! + DRAW_SCORE);
+                scores.set(index2, scores.get(index2)! + DRAW_SCORE);
+            } else {
+                let index = status === 1 ? index1 : index2;
+                scores.set(index, scores.get(index)! + 1);
+            }
+        }
+
+        console.log(results)
+
+        this.depth = _depth;
+        
+        // get the maximum value using Math.max()
+        const maxVal = Math.max(...scores.values());
+
+        let bestKey: number | undefined = undefined;
+
+        // find the key that corresponds to the maximum value
+        for (const [key, value] of scores.entries()) {
+            if (value === maxVal) {
+                if (bestKey === undefined) {
+                    bestKey = key;
+                } else {
+                    let r = 0
+                    let headToHead1 = results.find((result) => (result.white === key && result.black === bestKey));
+                    if (headToHead1) {
+                        if (headToHead1.result === 1) {
+                            r -= 1;
+                        } else if (headToHead1.result === 2) {
+                            r += 1;
+                        }
+                    }
+                    let headToHead2 = results.find((result) => (result.white === bestKey && result.black === key));
+                    if (headToHead2) {
+                        if (headToHead2.result === 1) {
+                            r += 1;
+                        } else if (headToHead2.result === 2) {
+                            r -= 1;
+                        }
+                    }
+                    if (r > 0) bestKey = key;
+                }
+            }
+        }
+
+        console.log(`The key with the highest value is "${bestKey}"`);
+      
+        console.log('scores', scores)
+
+        let bestParams = this.population.population.get(bestKey!)!.weights;
+        //console.log('best params', bestParams)
+
+        for (let i = 0; i < testIds.length; i++) {
+            this.population.destroyBot(testIds[i]);
+        }
+
+        return bestParams;
+
+
+    }/**/
 
 
 }
 
-
-
-function generatePositions(board: number, maxPieces: number): number[] {
-    const positions: number[] = [];
-    if (maxPieces === 0) {
-      return positions;
-    }
-    for (let i = 0; i < 32; i++) {
-      if ((board & (1 << i)) === 0) {
-        // Place a piece on this square
-        const newBoard = board | (1 << i);
-        positions.push(newBoard);
-        // Recursively generate positions with one more piece
-        const subPositions = generatePositions(newBoard, maxPieces - 1);
-        positions.push(...subPositions);
-      }
-    }
-    return positions;
-  }
-  
-  const initialBoard = 0; // Empty board
-  const maxPieces = 4; // Maximum number of pieces allowed
-  //const positions = generatePositions(initialBoard, maxPieces);
-  //console.log(positions); // Array of all possible positions with 5 or fewer pieces
-  

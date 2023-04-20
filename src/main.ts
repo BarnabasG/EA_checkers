@@ -18,7 +18,9 @@
 
 import { EvalHit, EvalMiss } from './ai';
 import { DBHits, DBMisses } from './board';
-import { boardStatsDatabase, roundTo, writeToFile } from './helper';
+import { getTime, roundTo, writeToFile } from './helper';
+//import { boardStatsDatabase, getTime, roundTo, writeToFile } from './helper';
+//import { boardStatsDatabase } from './database';
 //import { saveBoardStatsDatabase } from './helper';
 import { Checkers } from './run';
 
@@ -32,17 +34,31 @@ const checkers = new Checkers();
 //checkers.getPopulationFromJSONFile();
 
 
+// An example data object
+//const data = [
+//  { name: 'John', age: 28 },
+//  { name: 'Jane', age: 32 },
+//  { name: 'Bob', age: 45 }
+//];
 
+// Log the data to the console using console.table()
+//console.table(data);
+
+// Write the output to a file
+//writeToFile('test1.txt', JSON.stringify(data));
+
+//console.log("done")
 
 const formattedDate: string = new Date().toLocaleString().replace(/:/g, '-').replace(/\//g, '-').replace(/ /g, '_').replace(/,/g, '');
 console.log(formattedDate); // Output: 3/8/2023, 11:42:17 AM
 writeToFile('testScores_log.txt', '\n\n'.concat(formattedDate));
 
-const now = new Date();
-const hours = now.getHours().toString().padStart(2, '0');
-const minutes = now.getMinutes().toString().padStart(2, '0');
-const seconds = now.getSeconds().toString().padStart(2, '0');
-const time = `${hours}-${minutes}-${seconds}`;
+//const now = new Date();
+//const hours = now.getHours().toString().padStart(2, '0');
+//const minutes = now.getMinutes().toString().padStart(2, '0');
+//const seconds = now.getSeconds().toString().padStart(2, '0');
+//const time = `${hours}-${minutes}-${seconds}`;
+const time = getTime();
 console.log(time);
 
 
@@ -51,11 +67,33 @@ checkers.generatePreloadedDatabase()
 console.log(`Opening book generated in ${performance.now() - s1}ms`);
 
 let s2 = performance.now();
-checkers.train({ standardMethod: 'STP4'})
+checkers.train({ trainingMethod: 'STP5'});
+
+//let logInstance = '11-04-2023_00-56-00'
+//checkers.continueTrainingFromJSONFile('STP5', `log_${logInstance}.txt`, 14)
+
+
+/*(async () => {
+	for (let i = 0; i < 5; i++) {
+		console.log(`SIMULATION ${i+1}`)
+		await checkers.continueTrainingFromJSONFile('STP4', 'log_08-04-2023_17-43-50.txt', 26)
+	}
+	console.log('training time - ', performance.now() - s2);
+	console.log(`${roundTo(DBHits/(DBHits+DBMisses), 2)*100}% DB Hitrate`)
+	console.log(EvalHit, EvalMiss, `${roundTo(EvalHit/(EvalHit+EvalMiss), 2)*100}% Eval Hitrate`)
+})();*/
+
+//for (let i=0; i<10; i++) {
+//    console.log(`SIMULATION ${i+1}`)
+//    checkers.continueTrainingFromJSONFile('STP4', 'log_08-04-2023_17-43-50.txt', 26)
+//}
+//checkers.continueTrainingFromJSONFile('STP4', 'log_31-03-2023_13-21-49.txt', 19)
 //checkers.continueTrainingFromJSONFile('STP3', 'log_28-03-2023_15-08-07.txt', 25)
 //checkers.continueTrainingFromJSONFile('STP3', 'log_28-03-2023_22-45-26.txt', 28)
 //checkers.continueTrainingFromJSONFile('STP3', 'log_31-03-2023_01-15-25.txt', 14)
 console.log('training time - ', performance.now() - s2);
+
+//checkers.trial();
 
 //checkers.testFromJSONFile();
 
@@ -79,7 +117,7 @@ console.log(EvalHit, EvalMiss, `${roundTo(EvalHit/(EvalHit+EvalMiss), 2)*100}% E
 
 
 
-//{"standard":true,"standardMethod":"RR","generations":30}0[{"score":0.04,"wins":4,"losses":71,"draws":25}]1[{"score":0.04,"wins":4,"losses":71,"draws":25},{"score":0.075,"wins":6,"losses":55,"draws":19}]2[{"score":0.04,"wins":4,"losses":71,"draws":25},{"score":0.075,"wins":6,"losses":55,"draws":19},{"score":0.2,"wins":10,"losses":17,"draws":23}]3[{"score":0.04,"wins":4,"losses":71,"draws":25},{"score":0.075,"wins":6,"losses":55,"draws":19},{"score":0.2,"wins":10,"losses":17,"draws":23},{"score":0.275,"wins":11,"losses":6,"draws":23}]4[{"score":0.04,"wins":4,"losses":71,"draws":25},{"score":0.075,"wins":6,"losses":55,"draws":19},{"score":0.2,"wins":10,"losses":17,"draws":23},{"score":0.275,"wins":11,"losses":6,"draws":23},{"score":0.25,"wins":10,"losses":5,"draws":25}]5[{"score":0.04,"wins":4,"losses":71,"draws":25},{"score":0.075,"wins":6,"losses":55,"draws":19},{"score":0.2,"wins":10,"losses":17,"draws":23},{"score":0.275,"wins":11,"losses":6,"draws":23},{"score":0.25,"wins":10,"losses":5,"draws":25},{"score":0.25,"wins":10,"losses":6,"draws":24}]6[{"score":0.04,"wins":4,"losses":71,"draws":25},{"score":0.075,"wins":6,"losses":55,"draws":19},{"score":0.2,"wins":10,"losses":17,"draws":23},{"score":0.275,"wins":11,"losses":6,"draws":23},{"score":0.25,"wins":10,"losses":5,"draws":25},{"score":0.25,"wins":10,"losses":6,"draws":24},{"score":0.275,"wins":11,"losses":8,"draws":21}]7[{"score":0.04,"wins":4,"losses":71,"draws":25},{"score":0.075,"wins":6,"losses":55,"draws":19},{"score":0.2,"wins":10,"losses":17,"draws":23},{"score":0.275,"wins":11,"losses":6,"draws":23},{"score":0.25,"wins":10,"losses":5,"draws":25},{"score":0.25,"wins":10,"losses":6,"draws":24},{"score":0.275,"wins":11,"losses":8,"draws":21},{"score":0.475,"wins":19,"losses":3,"draws":18}]8[{"score":0.04,"wins":4,"losses":71,"draws":25},{"score":0.075,"wins":6,"losses":55,"draws":19},{"score":0.2,"wins":10,"losses":17,"draws":23},{"score":0.275,"wins":11,"losses":6,"draws":23},{"score":0.25,"wins":10,"losses":5,"draws":25},{"score":0.25,"wins":10,"losses":6,"draws":24},{"score":0.275,"wins":11,"losses":8,"draws":21},{"score":0.475,"wins":19,"losses":3,"draws":18},{"score":0.675,"wins":27,"losses":1,"draws":12}]9[{"score":0.04,"wins":4,"losses":71,"draws":25},{"score":0.075,"wins":6,"losses":55,"draws":19},{"score":0.2,"wins":10,"losses":17,"draws":23},{"score":0.275,"wins":11,"losses":6,"draws":23},{"score":0.25,"wins":10,"losses":5,"draws":25},{"score":0.25,"wins":10,"losses":6,"draws":24},{"score":0.275,"wins":11,"losses":8,"draws":21},{"score":0.475,"wins":19,"losses":3,"draws":18},{"score":0.675,"wins":27,"losses":1,"draws":12},{"score":0.425,"wins":17,"losses":2,"draws":21}]
+//{"standard":true,"trainingMethod":"RR","generations":30}0[{"score":0.04,"wins":4,"losses":71,"draws":25}]1[{"score":0.04,"wins":4,"losses":71,"draws":25},{"score":0.075,"wins":6,"losses":55,"draws":19}]2[{"score":0.04,"wins":4,"losses":71,"draws":25},{"score":0.075,"wins":6,"losses":55,"draws":19},{"score":0.2,"wins":10,"losses":17,"draws":23}]3[{"score":0.04,"wins":4,"losses":71,"draws":25},{"score":0.075,"wins":6,"losses":55,"draws":19},{"score":0.2,"wins":10,"losses":17,"draws":23},{"score":0.275,"wins":11,"losses":6,"draws":23}]4[{"score":0.04,"wins":4,"losses":71,"draws":25},{"score":0.075,"wins":6,"losses":55,"draws":19},{"score":0.2,"wins":10,"losses":17,"draws":23},{"score":0.275,"wins":11,"losses":6,"draws":23},{"score":0.25,"wins":10,"losses":5,"draws":25}]5[{"score":0.04,"wins":4,"losses":71,"draws":25},{"score":0.075,"wins":6,"losses":55,"draws":19},{"score":0.2,"wins":10,"losses":17,"draws":23},{"score":0.275,"wins":11,"losses":6,"draws":23},{"score":0.25,"wins":10,"losses":5,"draws":25},{"score":0.25,"wins":10,"losses":6,"draws":24}]6[{"score":0.04,"wins":4,"losses":71,"draws":25},{"score":0.075,"wins":6,"losses":55,"draws":19},{"score":0.2,"wins":10,"losses":17,"draws":23},{"score":0.275,"wins":11,"losses":6,"draws":23},{"score":0.25,"wins":10,"losses":5,"draws":25},{"score":0.25,"wins":10,"losses":6,"draws":24},{"score":0.275,"wins":11,"losses":8,"draws":21}]7[{"score":0.04,"wins":4,"losses":71,"draws":25},{"score":0.075,"wins":6,"losses":55,"draws":19},{"score":0.2,"wins":10,"losses":17,"draws":23},{"score":0.275,"wins":11,"losses":6,"draws":23},{"score":0.25,"wins":10,"losses":5,"draws":25},{"score":0.25,"wins":10,"losses":6,"draws":24},{"score":0.275,"wins":11,"losses":8,"draws":21},{"score":0.475,"wins":19,"losses":3,"draws":18}]8[{"score":0.04,"wins":4,"losses":71,"draws":25},{"score":0.075,"wins":6,"losses":55,"draws":19},{"score":0.2,"wins":10,"losses":17,"draws":23},{"score":0.275,"wins":11,"losses":6,"draws":23},{"score":0.25,"wins":10,"losses":5,"draws":25},{"score":0.25,"wins":10,"losses":6,"draws":24},{"score":0.275,"wins":11,"losses":8,"draws":21},{"score":0.475,"wins":19,"losses":3,"draws":18},{"score":0.675,"wins":27,"losses":1,"draws":12}]9[{"score":0.04,"wins":4,"losses":71,"draws":25},{"score":0.075,"wins":6,"losses":55,"draws":19},{"score":0.2,"wins":10,"losses":17,"draws":23},{"score":0.275,"wins":11,"losses":6,"draws":23},{"score":0.25,"wins":10,"losses":5,"draws":25},{"score":0.25,"wins":10,"losses":6,"draws":24},{"score":0.275,"wins":11,"losses":8,"draws":21},{"score":0.475,"wins":19,"losses":3,"draws":18},{"score":0.675,"wins":27,"losses":1,"draws":12},{"score":0.425,"wins":17,"losses":2,"draws":21}]
 
 /*
 [

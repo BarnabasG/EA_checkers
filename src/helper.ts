@@ -2,7 +2,7 @@
 //import { Board } from "./board";
 //import { Checkers } from "./checkers";
 //import {  } from "./bloomDatabase";
-import { BoardStats, Status, Result, WeightSet, WeightInit, BloomHashMapBoardStats, Player } from "./types";
+import { BoardStats, Status, Result, WeightSet, WeightInit, Player } from "./types";
 
 //let s1 = performance.now();
 //import boardDB from '../boardDB_6.json';
@@ -17,11 +17,11 @@ import { BoardStats, Status, Result, WeightSet, WeightInit, BloomHashMapBoardSta
 //console.log(boardDB)
 
 //export var boardStatsDatabase: BoardDatabase = {};
-export var boardStatsDatabase: BloomHashMapBoardStats = new BloomHashMapBoardStats();
+//export var boardStatsDatabase: BloomHashMapBoardStats = new BloomHashMapBoardStats();
 
-export function clearBoardDB() {
-    boardStatsDatabase = new BloomHashMapBoardStats();
-}
+//export function clearBoardDB() {
+//    boardStatsDatabase = new BloomHashMapBoardStats();
+//}
 
 
 
@@ -412,20 +412,20 @@ export function generateKey(value: number, king: number): string {
     return flipBit === 1 ? uniqueKey ^ 1 : uniqueKey;
 }*/
 
-export function generateKeyNumber(value: number, king: number): number {
-    const mask = 0xFFFFFFFF - ((1 << 16) - 1); // create a mask that zeroes out the least significant 16 bits
-    const uniqueKey = (value & mask) | (king & 0xFFFF);
-    return uniqueKey
-}
+//export function generateKeyNumber(value: number, king: number): number {
+//    const mask = 0xFFFFFFFF - ((1 << 16) - 1); // create a mask that zeroes out the least significant 16 bits
+//    const uniqueKey = (value & mask) | (king & 0xFFFF);
+//    return uniqueKey
+//}
 
-export function reverseBits1(num: number): number {
+/*export function reverseBits1(num: number): number {
     let result = 0;
     for (let i = 0; i < 32; i++) {
         result = (result << 1) | (num & 1);
         num >>>= 1;
     }
     return result << 16 | result >>> 16;
-}
+}*/
 
 export function reverseBits(x: number) {
     x = ((x >> 1) & 0x55555555) | ((x & 0x55555555) << 1);
@@ -437,6 +437,24 @@ export function reverseBits(x: number) {
     return x >>> 0;
 }
 
+
+export function getKeyByValue(value: number, record: Record<number, number>): number | undefined {
+    for (const key in record) {
+        if (Math.abs(record[key]) === Math.abs(value)) {
+            return parseInt(key);
+        }
+    }
+    return undefined;
+}
+
+export function getTime(): string {
+    const now = new Date();
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const seconds = now.getSeconds().toString().padStart(2, '0');
+    const time = `${hours}_${minutes}_${seconds}: `;
+    return time;
+}
 
 
 export function getPopulationMatches(popSize: number, competition: number = 0, matchCount: number = 10): number[][] {
@@ -600,27 +618,17 @@ export function weightedRandom(values: any[], weights: number[], n: number): any
 }
 
 
-/*export function checkDraw(boardStack: number[][], nonManMoves: number): boolean {
-    //check for draw by 40 move rule
-    if (nonManMoves >= 40) return true;
-
-    //check for draw by repetition
-    if (boardStack.length > 4) {
-        if (boardStack.at(-1) === boardStack.at(-3) && boardStack.at(-3) === boardStack.at(-5)) {
-            console.log('draw by repetition')
-            console.log(boardStack[-1], boardStack[-3], boardStack[-5])
-            return true;
-        }
-    }
-    return false;   
-}*/
-
 export function checkDraw(boardStack: number[][], nonManMoves: number): number {
     //check for draw by 40 move rule
     if (nonManMoves >= 40) return Status.DRAW_40;
 
     //check for draw by repetition
     if (boardStack.length > 4) {
+        //console.log('boardStack', boardStack.length)
+        //for (let i = 0; i < boardStack.length; i++) {
+        //    console.log(i, boardStack[i])
+        //}
+        //console.log('boardStack', boardStack[boardStack.length-1], boardStack[boardStack.length-3], boardStack[boardStack.length-5])
         if (areListsEqual(boardStack[boardStack.length-1], boardStack[boardStack.length-3], boardStack[boardStack.length-5])) {
             return Status.DRAW_REPETITION;
         }
@@ -657,7 +665,7 @@ export function generateInitialPopulation(size: number, weightInit?: WeightInit)
     return population;
 }
 
-export function getRandomSample<T>(arr: T[], sampleSize: number): T[] {
+/*export function getRandomSample<T>(arr: T[], sampleSize: number): T[] {
     const sample: T[] = [];
     const copiedArray = [...arr]; // create a copy of the original array
   
@@ -668,14 +676,28 @@ export function getRandomSample<T>(arr: T[], sampleSize: number): T[] {
     }
   
     return sample;
+}*/
+
+function getRandomSample<T>(arr: T[], sampleSize: number): T[] {
+	if (sampleSize >= arr.length) {
+	  return [...arr]
+	}
+
+	const sample: T[] = [];
+	for (let i = 0; i < sampleSize; i++) {
+		const randomIndex = Math.floor(Math.random() * (arr.length - i));
+		sample.push(arr[randomIndex]);
+		arr[randomIndex] = arr[arr.length - i - 1];
+	}
+	return sample;
 }
 
 //export function generateResultsTable(results: Map<string, Result>, bots: string[]) {
 export function generateResultsTable(results: Result[], bots: string[], scores: Map<number, number>) {
 
     console.log('generating results table')
-    console.log(results)
-    console.log(bots)
+    //console.log(results)
+    //console.log(bots)
 
     const table: (string | number)[][] = [] //createZeroMatrix(bots.length, -2);
     //console.log(table)
@@ -688,7 +710,7 @@ export function generateResultsTable(results: Result[], bots: string[], scores: 
 
     // Set the first row of the table to be the headers
     table.push(headers);
-    console.log(table)
+    //console.log(table)
 
     //for (let i=0; i<bots.length, i++) {
     //    table
@@ -956,3 +978,7 @@ console.log(getEdges(value))*/
 //console.log(roundTo(1.23456789, 2))
 
 //randomOppMatches(11, 3)
+
+
+
+

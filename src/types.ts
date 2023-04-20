@@ -61,20 +61,22 @@ export type WeightSet = {
 
 export interface TrainingParams {
     //standard?: boolean;
-    standardMethod?: string;
+    trainingMethod?: string;
     standardStartGeneration?: number;
     depth?: number;
     moveLimit?: number;
     generations?: number;
     populationSize?: number;
     competitionType?: number;
-    selectionMethod?: number;
-    learningRate?: number;
-    selectionPercent?: number;
-    keepTopPercent?: number;
-    randPercent?: number;
     matchCount?: number
-    tournamentSize?: number;
+    //selectionMethod?: number;
+    //learningRate?: number;
+    //selectionPercent?: number;
+    //keepTopPercent?: number;
+    //randPercent?: number;
+    //tournamentSize?: number;
+    //rank
+    generationParams?: GenerationParams;
     test?: boolean;
     testDepth?: number;
     popWeightInit?: WeightInit;
@@ -98,13 +100,14 @@ export interface PopulationParams {
 }
 
 export interface GenerationParams {
-    size?: number
+    //size?: number
     selectionMethod?: number
     learningRate?: number
     selectionPercent?: number
     keepTopPercent?: number
     randPercent?: number
-    tournamentSize?: number
+    tournamentSize?: number,
+    rankBias?: number
 }
 
 export type Pattern = {
@@ -114,7 +117,6 @@ export type Pattern = {
 export interface TrainingPatterns {
     [key: string]: Pattern;
 }
-
 
 //export interface BoardDatabase {
 //    [key: string]: BoardStats;
@@ -128,7 +130,8 @@ export type Result = {
 
 export type TrainedBot = {
     weights: BoardStats;
-    evaluationDB: BloomHashMapEvalData;
+    //evaluationDB: BloomHashMapEvalData;
+    evaluationDB: Evaluations;
 }
 
 export type PopStats = {
@@ -141,7 +144,9 @@ export type PopStats = {
         lowerBound: number;
         upperBound: number;
     };
-  };
+};
+
+
 
 
 /*export type BoardStats = {
@@ -158,9 +163,11 @@ export type PopStats = {
     attacks: number;
 }*/
 
+export type HashTable = {
+    [key: number]: BoardStats;
+}
 
-
-function djb2(str: string): number {
+/*function djb2(str: string): number {
     let hash = 5381;
     for (let i = 0; i < str.length; i++) {
         hash = (hash * 33) ^ str.charCodeAt(i);
@@ -175,17 +182,70 @@ function fnv1a(str: string): number {
         hash *= 16777619;
     }
     return hash;
+}*/
+
+
+export class BloomFilter {
+    private filter: boolean[]; // Bit array
+    private numElements: number;
+    private readonly numHashFunctions: number;
+    private readonly hashFunctions: ((key: number) => number)[];
+  
+    constructor(private size: number = 5_000_000) {
+        this.filter = new Array(size).fill(false);
+        this.numElements = 0;
+        this.hashFunctions = [
+            (key) => (key * 17) % this.size,
+            (key) => (key * 23) % this.size,
+            (key) => (key * 29) % this.size,
+            (key) => (key * 31) % this.size,
+            (key) => (key * 37) % this.size,
+            (key) => (key * 41) % this.size,
+            (key) => (key * 43) % this.size,
+        ];
+        this.numHashFunctions = this.hashFunctions.length;
+    }
+
+    public add(key: number): void {
+        for (let i = 0; i < this.numHashFunctions; i++) {
+            const index = this.hashFunctions[i](key);
+            this.filter[index] = true;
+        }
+        this.numElements++;
+    }
+
+    public has(key: number): boolean {
+        for (let i = 0; i < this.numHashFunctions; i++) {
+            const index = this.hashFunctions[i](key);
+            if (!this.filter[index]) {
+                return false;
+            }
+        }
+        return true;
+    }
+  
+    public getSize(): number {
+        return this.numElements;
+    }
+  
+    //public isEmpty(): boolean {
+    //    return this.numElements === 0;
+    //}
+  
+    public clear(): void {
+        this.filter.fill(false);
+        this.numElements = 0;
+    }
 }
 
 
-
-export class BloomHashMapBoardStats {
+/*export class BloomHashMapBoardStats {
     private filter: [number, BoardStats][]; // Array of [key, value] pairs
     private numElements: number;
     private readonly numHashFunctions: number;
     private readonly hashFunctions: ((key: number) => number)[];
   
-    constructor(private size: number = 500000) {
+    constructor(private size: number = 5_000_000) {
         this.filter = new Array(size);
         this.numElements = 0;
         this.hashFunctions = [
@@ -194,6 +254,8 @@ export class BloomHashMapBoardStats {
             (key) => (key * 29) % this.size,
             (key) => (key * 31) % this.size,
             (key) => (key * 37) % this.size,
+            (key) => (key * 41) % this.size,
+            (key) => (key * 43) % this.size,
         ];
         this.numHashFunctions = this.hashFunctions.length;
     }
@@ -242,7 +304,7 @@ export class BloomHashMapBoardStats {
         this.filter = new Array(this.size);
         this.numElements = 0;
     }
-  }
+}*/
   
 
 
@@ -415,7 +477,7 @@ export class BloomHashMapBoardStats {
     }
 }*/
 
-export class BloomHashMapEvalData {
+/*export class BloomHashMapEvalData {
     private readonly loadFactor: number;
     private readonly hashFunctions: ((str: string) => number)[];
     private table: Array<{ key: string, value: EvaluationData }[]>;
@@ -510,4 +572,4 @@ export class BloomHashMapEvalData {
             }
         }
     }
-}
+}*/

@@ -40,7 +40,7 @@ export const STANDARD_TRAINING_PATTERNS: TrainingPatterns = {
         30: {depth:7, populationSize:10, competitionType: 0, test: true},
     },
 
-    'STP2': {
+    /*'STP2': {
         999: {test: true, popWeightInit: WeightInit.RANDOM, generations: 40, learningRate: 0.15},//{generations: 10, competitionType: 1},
         0:  {depth:2, populationSize:500, competitionType: 1, matchCount: 8, test: true},
         //0:  {depth:2, populationSize:20, competitionType: 1, matchCount: 2, test: false},//
@@ -109,10 +109,10 @@ export const STANDARD_TRAINING_PATTERNS: TrainingPatterns = {
         28: {depth:7, populationSize:20, competitionType: 0, test: true},
         29: {depth:7, populationSize:20, competitionType: 0, test: true},
         30: {depth:7, populationSize:20, competitionType: 0, test: true},
-    },
+    },*/
 
     'STP4': {
-        999: {test: true, popWeightInit: WeightInit.RANDOM, generations: 10, learningRate: 0.1, randPercent: 5, keepTopPercent: 15},
+        999: {test: true, popWeightInit: WeightInit.RANDOM, generations: 30, generationParams: { learningRate: 0.1, randPercent: 5, keepTopPercent: 15}},
         0:  {depth:2, populationSize:400, competitionType: 1, matchCount: 8},
         1:  {depth:2, populationSize:200, competitionType: 1, matchCount: 10},
         2:  {depth:2, populationSize:200, competitionType: 1, matchCount: 15},
@@ -122,6 +122,55 @@ export const STANDARD_TRAINING_PATTERNS: TrainingPatterns = {
         6:  {depth:3, populationSize:50, competitionType: 0},
         7:  {depth:5, populationSize:30, competitionType: 0},
     },
+
+
+    'STP5': {
+        999: {test: true, popWeightInit: WeightInit.RANDOM, generations: 30, generationParams: {learningRate: 0.25, randPercent: 5, keepTopPercent: 15, selectionMethod: 0, rankBias: 1.5}},
+        //0:  {depth:2, populationSize:400, competitionType: 1, matchCount: 8, test: false},
+        0:  {depth:2, populationSize:400, competitionType: 1, matchCount: 8},
+        1:  {depth:2, populationSize:200, competitionType: 1, matchCount: 10},
+        2:  {depth:2, populationSize:200, competitionType: 1, matchCount: 15},
+        3:  {depth:2, populationSize:200, competitionType: 1, matchCount: 15, generationParams: {learningRate: 0.15}},
+        4:  {depth:2, populationSize:200, competitionType: 1, matchCount: 15, generationParams: {learningRate: 0.15}},
+        5:  {depth:3, populationSize:150, competitionType: 1, matchCount: 20, generationParams: {learningRate: 0.15}},
+        6:  {depth:3, populationSize:50, competitionType: 0, generationParams: {learningRate: 0.1}},
+        7:  {depth:3, populationSize:50, competitionType: 0, generationParams: {learningRate: 0.1}},
+        8:  {depth:3, populationSize:50, competitionType: 0, generationParams: {learningRate: 0.1}},
+        9:  {depth:3, populationSize:50, competitionType: 0, generationParams: {learningRate: 0.1}},
+        10: {depth:4, populationSize:50, competitionType: 0, generationParams: {learningRate: 0.1}},
+        11: {depth:4, populationSize:50, competitionType: 0, generationParams: {learningRate: 0.075}},
+        12: {depth:4, populationSize:50, competitionType: 0, generationParams: {learningRate: 0.075}},
+        13: {depth:4, populationSize:50, competitionType: 0, generationParams: {learningRate: 0.075}},
+        14: {depth:4, populationSize:50, competitionType: 0, generationParams: {learningRate: 0.075}},
+        15: {depth:6, populationSize:30, competitionType: 0, generationParams: {learningRate: 0.075}},
+        16: {depth:6, populationSize:30, competitionType: 0, generationParams: {learningRate: 0.05}},
+    },
+
+    /*'STP5': {
+        999: {test: true, popWeightInit: WeightInit.RANDOM, generations: 30, learningRate: 0.3, randPercent: 5, keepTopPercent: 15},
+        0:  {depth:2, populationSize:40, competitionType: 1, matchCount: 8, },
+        //0:  {depth:2, populationSize:400, competitionType: 1, matchCount: 8},
+        1:  {depth:2, populationSize:200, competitionType: 1, matchCount: 10},
+        2:  {depth:2, populationSize:200, competitionType: 1, matchCount: 15},
+        3:  {depth:2, populationSize:200, competitionType: 1, matchCount: 15, learningRate: 0.25},
+        4:  {depth:2, populationSize:200, competitionType: 1, matchCount: 15, learningRate: 0.25},
+        5:  {depth:3, populationSize:150, competitionType: 1, matchCount: 20, learningRate: 0.25},
+        6:  {depth:3, populationSize:50, competitionType: 0, generationParams: {learningRate: 0.2}},
+        7:  {depth:3, populationSize:50, competitionType: 0, learningRate: 0.2},
+        8:  {depth:3, populationSize:50, competitionType: 0, learningRate: 0.2},
+        9:  {depth:3, populationSize:50, competitionType: 0, learningRate: 0.2},
+        10: {depth:3, populationSize:50, competitionType: 0, learningRate: 0.15},
+        11: {depth:3, populationSize:50, competitionType: 0, learningRate: 0.15},
+        12: {depth:3, populationSize:50, competitionType: 0, learningRate: 0.15},
+        13: {depth:3, populationSize:50, competitionType: 0, learningRate: 0.15},
+        14: {depth:3, populationSize:50, competitionType: 0, learningRate: 0.15},
+        15: {depth:4, populationSize:40, competitionType: 0, learningRate: 0.1},
+        16: {depth:4, populationSize:40, competitionType: 0, learningRate: 0.1},
+        17: {depth:4, populationSize:40, competitionType: 0, learningRate: 0.1},
+        18: {depth:4, populationSize:40, competitionType: 0, learningRate: 0.1},
+        19: {depth:4, populationSize:40, competitionType: 0, learningRate: 0.075},
+        20: {depth:5, populationSize:30, competitionType: 0, learningRate: 0.05},
+    },*/
 
 
     //Round Robin

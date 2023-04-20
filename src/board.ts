@@ -26,8 +26,11 @@
 */
 
 
-import { boardStatsDatabase, generateBin, generateKey, generateKeyNumber, getAvrDist, getBoardFomBin, getPieceCount, pad, reverseBits, roundTo } from './helper';
+//import { boardStatsDatabase, generateBin, generateKey, getAvrDist, getBoardFomBin, getPieceCount, pad, reverseBits, roundTo } from './helper';
+import { BloomDatabase, HashMap } from './database';
+import { generateBin, generateKey, getAvrDist, getBoardFomBin, getPieceCount, pad, reverseBits, roundTo } from './helper';
 import { BoardStats, Move, Player } from './types';
+//import { boardStatsDatabase } from './database';
 
 //const BIN: Record<number, number> = [];
 //BIN[0] = 1;
@@ -456,7 +459,7 @@ export class Board {
     //getBoardStats(persist: boolean = false): BoardStats {
 
 
-    getBoardStats(): BoardStats {
+    getBoardStats(boardStatsDatabase: BloomDatabase | HashMap): BoardStats {
 
 
         //TODO - calc for white, for black flib bits and search db. only calc black attacks seperately.
@@ -530,7 +533,7 @@ export class Board {
 
     }
 
-    persistStatsForValue(pieces: number, player: Player): void {
+    persistStatsForValue(boardStatsDatabase: BloomDatabase | HashMap, pieces: number, player: Player): void {
         //let key = generateKey(pieces, kings);
         let key = player === Player.WHITE ? pieces : reverseBits(pieces);
         let stats: BoardStats;

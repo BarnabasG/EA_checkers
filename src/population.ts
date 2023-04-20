@@ -1,4 +1,4 @@
-import { boardStatsDatabase, generateInitialPopulation, getRandom, getWeights, permutations, randomNeg, weightedRandom } from "./helper";
+import { generateInitialPopulation, getRandom, getWeights, permutations, randomNeg, weightedRandom } from "./helper";
 import { BoardStats, GenerationParams, Player, PopulationParams, Status, WeightInit, WeightSet } from "./types";
 
 
@@ -67,26 +67,28 @@ export class Population {
     }
 
 
-    nextGeneration(generationParams: GenerationParams = {}): void {//Map<number, WeightSet> {//PopulationSet {
-        //console.log('nextGeneration', generationParams)
+    nextGeneration(size: number = this.size, generationParams: GenerationParams = {}): void {//Map<number, WeightSet> {//PopulationSet {
+        console.log('nextGeneration', generationParams)
         //console.log(this)
+        //if (size === undefined) size = this.size;
         const {
-            size = this.size,
             selectionMethod = 0,
             learningRate = 0.1,
             selectionPercent = 30,
             keepTopPercent = 10,
             randPercent = 10,
-            tournamentSize = 5
+            tournamentSize = 5,
+            rankBias = 1
         } = generationParams;
         const selectionCount = Math.max(size > 2 ? 2 : 1, Math.floor(this.size * (selectionPercent / 100)));
         const keepTopCount = Math.max(size > 1 ? 1 : 0, Math.floor(this.size * (keepTopPercent / 100)));
         const randCount = Math.max(size > 1 ? 1 : 0, Math.floor(this.size * (randPercent / 100)));
         //console.log(selectionCount, keepTopCount)
 
-        const nextGen = this.selection(selectionMethod, size, selectionCount, keepTopCount, randCount, learningRate, tournamentSize);
+        const nextGen = this.selection(selectionMethod, size, selectionCount, keepTopCount, randCount, learningRate, tournamentSize, rankBias);
         this.population = nextGen;
         this.size = size;
+        console.log('new generation size:', this.size);
         //this.addTestBot();
 
         //console.log('nextGen', nextGen)
@@ -118,7 +120,8 @@ export class Population {
             keepTopCount: number,
             randCount: number,
             learningRate: number,
-            tournamentSize: number
+            tournamentSize: number,
+            rankBias: number
         ): Map<number, WeightSet> {//PopulationSet {
 
         //const rankedPopulation: PopulationSet = this.rankPopulation();
@@ -146,6 +149,7 @@ export class Population {
         }
         console.log('+rands', [...nextGen.keys()])
 
+        console.log('selectionMethod', method)
 
         switch (method) {
             case 0:
@@ -154,6 +158,8 @@ export class Population {
             //    return this.selectionTournament(nextGen, size, rankedPopulation, selectionCount, learningRate, tournamentSize);
             case 2:
                 return this.selectionElitist(nextGen, size, rankedPopulation, selectionCount, learningRate);
+            case 3:
+                return this.selectionRank(nextGen, size, rankedPopulation, selectionCount, learningRate, rankBias);
             default:
                 return this.selectionRoulette(nextGen, size, rankedPopulation, selectionCount, learningRate);
         }
@@ -255,10 +261,6 @@ export class Population {
                 }
             }
         }
-
-        
-
-
     
     
     return nextGen;
@@ -286,6 +288,36 @@ export class Population {
         
         return nextGen;
     }
+
+    selectionRank(
+        nextGen: Map<number, WeightSet>,
+        size: number,
+        rankedPopulation: Map<number, WeightSet>, //PopulationSet,
+        selectionCount: number,
+        learningRate: number,
+        rankBias: number
+    ): Map<number, WeightSet> {//PopulationSet {
+
+        const keys = [...rankedPopulation.keys()];
+        //const ranks = [...Array(keys.length).keys()].map((i) => Math.pow(i+1, rankBias));
+        const ranks = [...Array.from({length: keys.length}, (_, i) => keys.length - i)].map((i) => Math.pow(i, rankBias));
+        console.log(ranks)
+
+        let parents = weightedRandom(keys, ranks, selectionCount);
+        console.log('selected parents', parents);
+
+        const children = this.generateChildren(parents, size-nextGen.size, learningRate, rankedPopulation);
+
+        const prepopSize = nextGen.size;
+        for (let i=prepopSize; i<size; i++) {
+            nextGen.set(i, children[i-prepopSize]);
+        }
+
+        this.resetScores();
+        return nextGen;
+    }
+
+
 
     generateChildren(
             parents: number[],
