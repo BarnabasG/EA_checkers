@@ -1,10 +1,11 @@
 import { getBestMoveTrainedBot } from "./ai";
+import { Board } from "./board";
 //import { BloomHashMapEvalData } from "./bloomDatabase";
 import { CheckersGame } from "./checkers";
 import { BloomDatabase, generateDatabase } from "./database";
-import { checkDraw, decToBin, generateBin, getBoardFomBin, getKeyByValue, getPresentBitIndexes, printBoard } from "./helper";
+import { checkDraw, decToBin, generateBin, getBoardFomBin, getKeyByValue, getPresentBitIndexes, getWeights, printBoard } from "./helper";
 //import { Move, Player, Status, TrainedBot, BloomHashMapEvalData } from "./types";
-import { Evaluations, Move, Player, Status, TrainedBot } from "./types";
+import { Evaluations, Move, Player, Status, TrainedBot, WeightInit } from "./types";
 
 
 
@@ -40,10 +41,10 @@ export class PlayGame {
 	public nonManMoves: number;
 	public BIN: Record<number, number>
 	private boardStatsDatabase: BloomDatabase;
-	private evaluationDB: Evaluations
+	private databaseGenerated: boolean;
+	private boardInit: Board;
 
-	constructor(playAs: Player = Player.WHITE, depth: number = 10) {
-		this.checkers = new CheckersGame();
+	constructor(playAs: Player = Player.WHITE, depth: number = 11, board: Board | undefined = undefined, turn: Player = Player.WHITE) {
 		this.playAs = playAs;
 		this.depth = depth;
 		this.status = 0;
@@ -55,12 +56,13 @@ export class PlayGame {
 		this.nonManMoves = 0;
 		this.BIN = generateBin();
 		this.boardStatsDatabase = new BloomDatabase();
-		this.boardStatsDatabase.generate()
-		this.evaluationDB = {}
+		this.databaseGenerated = false;
+		this.boardInit = board ? board : new Board();
+		this.checkers = new CheckersGame(this.boardInit, turn);
 	}
 
-	startGame(playAs: Player, depth: number = 10): void {
-		this.checkers = new CheckersGame();
+	startGame(playAs: Player, depth: number = 11): void {
+		this.checkers = new CheckersGame(this.boardInit);
 		this.status = 0;
 		this.moveIndex = 0;
 		this.evaluatedNodeCount = 0;
@@ -68,48 +70,23 @@ export class PlayGame {
 		this.nonManMoves = 0;
 		this.playAs = playAs;
 		this.depth = depth;
-
-		//this.bot = this.getBot();
+		if (!this.databaseGenerated) {
+			this.boardStatsDatabase.generate(7, 8, 4)
+			this.databaseGenerated = true;
+		}
 	}
 
 
 	getBot(): TrainedBot {
 		return {
-			"weights": {"pieces":1,"kings":0.2,"avrDist":0.2,"backline":0.2,"corners":0.2,"edges":0.2,"centre2":0.2,"centre4":0.2,"centre8":0.8,"defended":0.2,"attacks":0.2},
-			//'evaluationDB': new BloomHashMapEvalData()
-        	"evaluationDB": {}
+			"weights": getWeights(WeightInit.TRAINED),
+			"evaluationDB": {}
 		}
 	}
 
-	/*
-	best weights {
-	pieces: 1.4108911984493546,
-	kings: 0.49972820197665685,
-	avrDist: 0.9386468340025729,
-	backline: 2.096098947239599,
-	corners: 0.1433075922874103,
-	edges: 1.078047547141283,
-	centre2: -1.8939243617209502,
-	centre4: 1.1023252166592215,
-	centre8: 1.1572500311303122,
-	defended: -1.1549385115314297,
-	attacks: 0.06976331640033073
-	}
-	*/
-
-	/*userMove(): PlayMove {
-		let move: Move = this.checkers.getMoves()[0];
-		this.checkers = this.checkers.makeMove(move);
-		this.moveIndex++;
-		return this.moveToPlayMove(move);
-	}*/
-
-	//TODO White king doesnt show on board until after black move
-	//TODO Draw 3 move repetation not working in play mode
-
 	userMove(move: Move): Status {
-		if (this.playAs !== this.checkers.player) return Status.PLAYING
-		this.checkers = this.checkers.makeMove(move);
+		if (this.playAs !== this.checkers!.player) return Status.PLAYING
+		this.checkers = this.checkers!.makeMove(move);
 		printBoard(this.checkers.board.white, this.checkers.board.black, this.checkers.board.king);
 		this.moveIndex++;
 		//console.log('move', getBoardFomBin(move.start | move.end | move.captures))
@@ -123,15 +100,9 @@ export class PlayGame {
 	}
 
 	aiMove(move: Move): Status {
-		//let m = getBestMoveTrainedBot(this.checkers, this.depth, this.bot);
-		//let move: Move = m.move;
-		//this.evaluatedNodeCount += m.evaluatedNodeCount;
-		this.checkers = this.checkers.makeMove(move);
+		this.checkers = this.checkers!.makeMove(move);
 		printBoard(this.checkers.board.white, this.checkers.board.black, this.checkers.board.king);
 		this.moveIndex++;
-		//console.log('move', getBoardFomBin(move.start | move.end | move.captures))
-		//console.log('kings', getBoardFomBin(this.checkers.board.king))
-		//console.log('move.end && king', getBoardFomBin(move.end & this.checkers.board.king))
 		(move.end & this.checkers.board.king) && !move.captures ? this.nonManMoves++ : this.nonManMoves = 0;
         this.boardStack.push([this.checkers.board.white, this.checkers.board.black, this.checkers.board.king]);
         if (this.boardStack.length > 5) this.boardStack.shift();
@@ -141,8 +112,8 @@ export class PlayGame {
 
 	checkGameOver(): void {
 		console.log('checkGameOver')
-		if (this.checkers.getMoves().length == 0) {
-			this.status = this.checkers.player == Player.WHITE ? Status.BLACK_WON : Status.WHITE_WON;
+		if (this.checkers!.getMoves().length == 0) {
+			this.status = this.checkers!.player == Player.WHITE ? Status.BLACK_WON : Status.WHITE_WON;
 			console.log("Game over1", Status[this.status]);
 		} else if (this.moveIndex >= this.moveLimit) {
 			this.status = Status.DRAW_MOVELIMIT;
@@ -158,9 +129,9 @@ export class PlayGame {
 
 	moveToPlayMove(move: Move): PlayMove {
 		const end = getPresentBitIndexes(move.end);
-		const addColour = (this.checkers.board.white & move.end) !== 0 ? "w" : "b";
+		const addColour = (this.checkers!.board.white & move.end) !== 0 ? "w" : "b";
 		const remove = [...getPresentBitIndexes(move.start), ...getPresentBitIndexes(move.captures)]
-		const king = getPresentBitIndexes(this.checkers.board.king)
+		const king = getPresentBitIndexes(this.checkers!.board.king)
 		let playMove: PlayMove = {
 			add: end,
 			addColour: addColour,
@@ -174,7 +145,7 @@ export class PlayGame {
 
 		let startBin = this.BIN[start];
 		let endBin = this.BIN[end];
-		const moves = this.checkers.getMoves();
+		const moves = this.checkers!.getMoves();
 		for (let i=0; i<moves.length; i++) {
 			if (Math.abs(moves[i].start) == +startBin && Math.abs(moves[i].end) == +endBin) {
 				return moves[i];
@@ -183,22 +154,23 @@ export class PlayGame {
 		throw new Error("Invalid move");
 	}
 
-	getAiMove(): Move {
-		let m = getBestMoveTrainedBot(this.checkers, this.depth, this.bot, this.boardStatsDatabase);
-		let move: Move = m.move;
+	getAiMove(): { move: Move, evaluatedNodeCount: number, evaluation: number } {
+		let m = getBestMoveTrainedBot(this.checkers!, this.depth, this.bot, this.boardStatsDatabase);
+		//let move: Move = m.move;
 		this.evaluatedNodeCount += m.evaluatedNodeCount;
-		return move;
+		return m;
 	}
 
 	getEndSquares(start: number): number[] {
 		//console.log('start',start)
 		let startBin = this.BIN[start];
-		const moves = this.checkers.getMoves();
+		const moves = this.checkers!.getMoves();
 		let endSquares: number[] = [];
 		//console.log(startBin)
 		for (let i=0; i<moves.length; i++) {
-			//console.log(moves[i].start, moves[i].end)
+			//console.log(moves[i].start, moves[i].end, Math.abs(moves[i].start), Math.abs(moves[i].start) == +startBin)
 			if (Math.abs(moves[i].start) == +startBin) {
+				//console.log("match")
 				//endSquares.push(+this.BIN.indexOf(moves[i].end.toString()));
 				//console.log(moves[i].end)
 				//console.log(this.BIN)
@@ -212,14 +184,11 @@ export class PlayGame {
 
 
 	validateMove(start: number, end: number): boolean {
-		//numbers as bit indexes
 		console.log(start, end)
 		let startBin = this.BIN[start];
 		let endBin = this.BIN[end];
-		//let startBin = decToBin(start);
-		//let endBin = decToBin(end);
 		console.log(startBin, endBin)
-		const moves = this.checkers.getMoves();
+		const moves = this.checkers!.getMoves();
 		for (let i=0; i<moves.length; i++) {
 			console.log(Math.abs(moves[i].start), Math.abs(moves[i].end))
 			if (Math.abs(moves[i].start) == +startBin && Math.abs(moves[i].end) == +endBin) return true;

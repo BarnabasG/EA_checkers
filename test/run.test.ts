@@ -6,11 +6,19 @@ import { WeightInit, WeightSet } from '../src/types';
 describe('compete', () => {
     test('return 5 for draw by movelimit', () => {
         let c = new Checkers();
-        c.setPopulation({populationSize: 2, weightInit: WeightInit.ZERO});
+        c.setPopulation({populationSize: 2, weightInit: WeightInit.TEST});
         c.setMoveLimit(10);
         expect(c.compete([0,1])).toBe(5);
     });
 });
+
+//describe('nextMove', () => {
+//    test('return 5 for draw by movelimit', () => {
+//        let c = new Checkers();
+//        c.setPopulation({populationSize: 2, weightInit: WeightInit.TEST});
+//        expect(c.compete([0,1])).toBe(2);
+//    });
+//});
 
 
 describe('loadPopFromJSON', () => {

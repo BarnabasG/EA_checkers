@@ -1,17 +1,22 @@
 //var Benchmark = require('benchmark');
 import Benchmark from 'benchmark';
-import { BoardStats, WeightInit, WeightSet } from "../src/types";
+import { BoardStats, Player, Status, WeightInit, WeightSet } from "../src/types";
 //import { CheckersGame } from "../src/checkers";
 import { Population } from "../src/population";
+import { CheckersGame } from '../src/checkers';
+import { minimax } from '../src/ai';
+import { HashMap } from '../src/database';
+import { checkDraw, printBoard } from '../src/helper';
 
-
-import { BloomFilter } from 'bloom-filters'
 
 const runConfig = {
 	"reverseBits": false,
 	"getBestNMembers": false,
 	"keys": false,
-	"bloomFilter": true,
+	//"bloomFilter": true,
+	"popRandom": false,
+	"compete": false,
+	"permutations": true
 }
 
 
@@ -509,12 +514,21 @@ if (runConfig.reverseBits) {
 	//console.log("Running reverseBits")
 	var suite = new Benchmark.Suite;
 
-	const reverseBitInput = 0b01000000000000000000000011110000;
+	const reverseBitInput = 0b01000000001010000000100011110001;
+	const reverseBitInput2 = 0b11111111111111111111111111111111;
+	const reverseBitInput3 = 0b00000000000000000000000000000000;
+
 	//const reverseBitInput = 0b11000111100011111100000011110001;
 
 
 	suite.add('reverseBits', function() {
 			reverseBits(reverseBitInput);
+		})
+		.add('reverseBits2', function() {
+			reverseBits(reverseBitInput2);
+		})
+		.add('reverseBits3', function() {
+			reverseBits(reverseBitInput3);
 		})
 		.on('cycle', function(event: { target: any; }) {
 			console.log(String(event.target));
@@ -861,14 +875,11 @@ if (runConfig.getBestNMembers) {
 
 
 
-type HashTable = {
+
+
+/*type HashTable = {
     [key: string]: BoardStats;
 }
-
-
-
-
-
 
 class BloomHashMapBoardStatsOriginal {
     private filter: [number, BoardStats][]; // Array of [key, value] pairs
@@ -907,7 +918,7 @@ class BloomHashMapBoardStatsOriginal {
 			this.filter[index] = (this.filter[index] ? this.filter[index] : 0) | (1 << i);
 		}
 		this.numElements++;
-	}*/
+	}*
   
     public get(key: number): BoardStats | undefined {
         for (let i = 0; i < this.numHashFunctions; i++) {
@@ -1133,7 +1144,7 @@ class BloomHashMapBoardStats3 {
 			return undefined;
 			}
 		}
-		return new BoardStats(); // replace with actual implementation*/
+		return new BoardStats(); // replace with actual implementation*
 		if (this.has(key)) {
 			return hashTable[key];
 		}
@@ -1209,7 +1220,7 @@ function dbAccessBloom(key: number, bloomFilter: BloomHashMapBoardStats): any {
 	if (bloomFilter.has(key)) {
 		return bloomFilter.get(key);
 	}
-}*/
+}*
 
 function dbAccessHashTable(key: string, hashTable: HashTable): any {
 	return (key in hashTable)
@@ -1232,7 +1243,7 @@ for (let i = 0; i < 500000; i++) {
 	let x = getRandomBoardStats();
 	bloomFilter.put(i, x);
 }
-console.log("BloomFilter set time: " + (performance.now() - s));*/
+console.log("BloomFilter set time: " + (performance.now() - s));*
 
 
 function hashTableReadValid() {
@@ -1281,7 +1292,7 @@ function testBloomFilterRandom() {
 	//let i = Math.floor(Math.random() * 50000000);
 	let i = 9999999999
 	dbAccessBloom(i, bloomFilter);
-}*/
+}*
 
 
 
@@ -1305,7 +1316,7 @@ if (runConfig.bloomFilter) {
 		})
 		.add('testBloomFilterRandom', function() {
 			testBloomFilterRandom();
-		})*/
+		})*
 		.add('hashTableReadValid', function() {
 			hashTableReadValid();
 		})
@@ -1333,12 +1344,335 @@ if (runConfig.bloomFilter) {
 	//suite.run({async: true});
 } else {
 	console.log("Skipping bloomFilter")
+}*/
+
+
+//popRandom
+
+function popRandom<T>(array: T[]): T | undefined {
+    if (array.length === 0) {
+      return undefined;
+    }
+    const index = Math.floor(Math.random() * array.length);
+    return array.splice(index, 1)[0];
+}
+
+
+const arr1 = [...Array(100).keys()];
+const arr2 = [...Array(10000).keys()];
+const arr3 = [...Array(100).keys()].map(x => x.toString());
+const arr4 = [...Array(10000).keys()].map(x => x.toString());
+
+
+if (runConfig.popRandom) {
+	//console.log("Running getBestNMembers")
+
+	var suite = new Benchmark.Suite;
+
+	suite
+		.add('popRandom1', function() {
+			popRandom(arr1);
+		})
+		.add('popRandom2', function() {
+			popRandom(arr2);
+		})
+		.add('popRandom3', function() {
+			popRandom(arr3);
+		})
+		.add('popRandom4', function() {
+			popRandom(arr4);
+		})
+		.on('cycle', function(event: { target: any; }) {
+			console.log(String(event.target));
+		})
+
+	testSuites.set('popRandom', suite);
+	//suite.run({async: true});
+} else {
+	console.log("Skipping popRandom")
+}
+
+
+
+//Compete
+
+function compete(indexes: number[], moveLimit: number, depth: number, population: Map<number, WeightSet>, boardStatsDatabase: HashMap = new HashMap()): number {
+
+	//population = new Population({testPopulation: true}).population
+
+
+	let checkers = new CheckersGame();
+	let status = 0;
+	let moveIndex = 0;
+
+	let boardStack: number[][] = [];
+	let nonManMoves: number = 0;
+
+
+	while (moveIndex !== moveLimit) {
+		let moves = checkers.getMoves();
+		status = (moves.length == 0) ? (checkers.player === Player.WHITE ? Status.BLACK_WON : Status.WHITE_WON) : Status.PLAYING;
+		if (status !== 0) {
+			//console.log(Status[status])
+			//printBoard(checkers.board.white, checkers.board.black, checkers.board.king)
+			return status;
+		}
+		let move = minimax(checkers, depth, population, checkers.player === Player.WHITE ? indexes[0] : indexes[1], boardStatsDatabase);
+		checkers = checkers.makeMove(move);
+
+		(move.end & checkers.board.king) && !move.captures ? nonManMoves++ : nonManMoves = 0;
+		boardStack.push([checkers.board.white, checkers.board.black, checkers.board.king]);
+		if (boardStack.length > 10) boardStack.shift();
+
+		//console.log("calling checkDraw")
+		let s = checkDraw(boardStack, nonManMoves)
+		//console.log("checkDraw returned " + Status[s])
+		if (s !== Status.PLAYING) {
+			//console.log(Status[s])
+			//printBoard(checkers.board.white, checkers.board.black, checkers.board.king)
+			return s;
+		}
+
+		moveIndex++;
+		//printBoard(checkers.board.white, checkers.board.black, checkers.board.king)
+	}
+	//console.log(Status[Status.DRAW_MOVELIMIT])
+	//printBoard(checkers.board.white, checkers.board.black, checkers.board.king)
+	return Status.DRAW_MOVELIMIT;
+	
+	
+}
+
+
+const pop = new Population({testPopulation: true})
+const moveLimit = 200;
+//const moveLimit = -1;
+//const boardStatsDatabase = new HashMap();
+const indexes = [0, 1];
+
+if (runConfig.compete) {
+
+	var suite = new Benchmark.Suite;
+
+	suite
+		.add('compete depth 1', function() {
+			compete(indexes, moveLimit, 1, pop.population);
+			pop.clearDatabases();
+		})
+		.add('compete depth 2', function() {
+			compete(indexes, moveLimit, 2, pop.population);
+			pop.clearDatabases();
+		})
+		.add('compete depth 3', function() {
+			compete(indexes, moveLimit, 3, pop.population);
+			pop.clearDatabases();
+		})
+		.add('compete depth 4', function() {
+			compete(indexes, moveLimit, 4, pop.population);
+			pop.clearDatabases();
+		})
+		.add('compete depth 5', function() {
+			compete(indexes, moveLimit, 5, pop.population);
+			pop.clearDatabases();
+		})
+		.add('compete depth 6', function() {
+			compete(indexes, moveLimit, 6, pop.population);
+			pop.clearDatabases();
+		})
+		.add('compete depth 7', function() {
+			compete(indexes, moveLimit, 7, pop.population);
+			pop.clearDatabases();
+		})
+		.add('compete depth 8', function() {
+			compete(indexes, moveLimit, 8, pop.population);
+			pop.clearDatabases();
+		})
+		.add('compete depth 9', function() {
+			compete(indexes, moveLimit, 9, pop.population);
+			pop.clearDatabases();
+		})
+		//.add('compete depth 10', function() {
+		//	compete(indexes, moveLimit, 10, pop.population);
+		//	pop.clearDatabases();
+		//})
+		.on('cycle', function(event: { target: any; }) {
+			console.log(String(event.target));
+		})
+
+	testSuites.set('compete', suite);
+	//suite.run({async: true});
+
+
+	for (let i = 4; i <= 6; i++) {
+		let c = 0;
+		let r = Status.PLAYING;
+		for (let j = 0; j < 12; j++) {
+			let s = performance.now();
+			r = compete(indexes, moveLimit, i, pop.population);
+			c += performance.now() - s;
+			pop.clearDatabases();
+			//console.log(Status[r])
+		}
+		console.log('result', Status[r], i, c / 12);
+	}
+	for (let i = 7; i <= 8; i++) {
+		let c = 0;
+		let r = Status.PLAYING;
+		for (let j = 0; j < 8; j++) {
+			let s = performance.now();
+			r = compete(indexes, moveLimit, i, pop.population);
+			c += performance.now() - s;
+			pop.clearDatabases();
+			//console.log(Status[r])
+		}
+		console.log('result', Status[r], i, c / 8);
+	}
+	for (let i = 9; i <= 9; i++) {
+		let c = 0;
+		let r = Status.PLAYING;
+		for (let j = 0; j < 5; j++) {
+			let s = performance.now();
+			r = compete(indexes, moveLimit, i, pop.population);
+			c += performance.now() - s;
+			pop.clearDatabases();
+			//console.log()
+		}
+		console.log('result', Status[r], i, c / 5);
+	}
+	for (let i = 10; i <= 10; i++) {
+		let c = 0;
+		let r = Status.PLAYING;
+		for (let j = 0; j < 3; j++) {
+			let s = performance.now();
+			r = compete(indexes, moveLimit, i, pop.population);
+			c += performance.now() - s;
+			console.log('10', Status[r], performance.now() - s)
+			pop.clearDatabases();
+		}
+		console.log('result', Status[r], i, c / 3);
+	}
+
+
+} else {
+	console.log("Skipping compete")
 }
 
 
 
 
 
+//permutations
+
+function permutations(arr: number[], len: number = arr.length): number[][] {
+	
+    len = len || arr.length;
+    if(len > arr.length) len = arr.length;
+    const results: any[] = [];
+  
+    function eliminate(el: number, arr: number[]) {
+        let i = arr.indexOf(el);
+        arr.splice(i, 1);
+        return arr;
+    }
+  
+    function perms(arr: number[], len: number, prefix: any[] = []) {
+        if (prefix.length === len) {
+            results.push(prefix);
+        } else {
+            for (let elem of arr) {
+                let newPrefix = [...prefix];
+                newPrefix.push(elem);
+                let newRest = null;
+                newRest = eliminate(elem, [...arr]);
+                perms(newRest, len, newPrefix);
+            }
+        }
+        return;
+    }
+    perms(arr, len);
+
+    return results;
+}
+
+const arr1Perms = [...Array(10).keys()]
+const arr2Perms = [...Array(50).keys()]
+const arr3Perms = [...Array(200).keys()]
+const arr4Perms = [...Array(1000).keys()]
+
+
+const len1Perms = 2;
+
+
+console.log(permutations(arr1Perms, len1Perms).length)
+//console.log(permutations(arr1Perms, len2Perms).length)
+//console.log(permutations(arr1Perms, len3Perms).length)
+//console.log(permutations(arr1Perms, len4Perms).length)
+console.log(permutations(arr2Perms, len1Perms).length)
+//console.log(permutations(arr2Perms, len2Perms).length)
+//console.log(permutations(arr2Perms, len3Perms).length)
+//console.log(permutations(arr2Perms, len4Perms).length)
+console.log(permutations(arr3Perms, len1Perms).length)
+//console.log(permutations(arr3Perms, len2Perms).length)
+//console.log(permutations(arr3Perms, len3Perms).length)
+//console.log(permutations(arr3Perms, len4Perms).length)
+console.log(permutations(arr4Perms, len1Perms).length)
+
+
+if (runConfig.permutations) {
+
+	var suite = new Benchmark.Suite;
+
+	suite
+		.add('permutations 1.1', function() {
+			permutations(arr1Perms, len1Perms);
+		})
+		/*.add('permutations 1.2', function() {
+			permutations(arr1Perms, len2Perms);
+		})
+		.add('permutations 1.3', function() {
+			permutations(arr1Perms, len3Perms);
+		})
+		.add('permutations 1.4', function() {
+			permutations(arr1Perms, len4Perms);
+		})*/
+		.add('permutations 2.1', function() {
+			permutations(arr2Perms, len1Perms);
+		})
+		/*.add('permutations 2.2', function() {
+			permutations(arr2Perms, len2Perms);
+		})
+		.add('permutations 2.3', function() {
+			permutations(arr2Perms, len3Perms);
+		})
+		.add('permutations 2.4', function() {
+			permutations(arr2Perms, len4Perms);
+		})*/
+		.add('permutations 3.1', function() {
+			permutations(arr3Perms, len1Perms);
+		})
+		/*.add('permutations 3.2', function() {
+			permutations(arr3Perms, len2Perms);
+		})
+		.add('permutations 3.3', function() {
+			permutations(arr3Perms, len3Perms);
+		})
+		.add('permutations 3.4', function() {
+			permutations(arr3Perms, len4Perms);
+		})*/
+		.add('permutations 4.1', function() {
+			permutations(arr4Perms, len1Perms);
+		})
+		
+		.on('cycle', function(event: { target: any; }) {
+			console.log(String(event.target));
+		})
+
+	testSuites.set('permutations', suite);
+
+
+} else {
+	console.log("Skipping permutations")
+}
 
 
 

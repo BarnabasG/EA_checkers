@@ -97,7 +97,7 @@
         }
 
         .rightside {
-            display: flex;
+            /*display: flex;*/
             width:40%;
             float: right;
         }
@@ -140,9 +140,10 @@
 
         .gameOver {
             padding: 10px;
-            background-color: rgb(158, 0, 0);
+            /*background-color: rgb(158, 0, 0);*/
             display: block;
             clear: both;
+            max-width: 140px;
         }
 
         .dot {
@@ -175,30 +176,39 @@
 
     <!--<div class="board-container">-->
 
-    <div class="container">
+    <div class="container" id="container">
         <div class="left-box">
-            <div class="board" id="board"></div>
+            <div class="board" id="boardContainer">
+                <div id="board"></div>
+            </div>
         </div>
 
         <div class="right-box movebox" id="rightbox">
             <label style="color:black;">New game:</label><br/>
-            <button id="startWhite">White</button><button id="startBlack">Black</button>
-            <br/><br/>
+            <button id="startWhite">White</button>&nbsp;<button id="startBlack">Black</button>&nbsp;<button id="puzzle">Puzzle</button>
+            <br/>
+            Evaluation: <label id="eval"></label>&nbsp;&nbsp;Evaluated Nodes [This Move]: <label id="nodes"></label>&nbsp;&#91;<label id="nodesThisMove"></label>&#93;<br/>
             <div class="leftside" style="height: 320px; overflow: auto;">
                 <div class="turnNumber" id="turnNumber"></div>
                 <div class="whiteMoves" id="whiteMoves"></div>
                 <div class="blackMoves" id="blackMoves"></div>
             </div>
             <div class="rightside">
-                <div id="demoBoard"></div>
+                <div id="demoBoard"></div><br/>
                 <div id="gameover" class="gameover"></div>
             </div>
         </div>
     </div>
 
+    <button onclick="noColour()">remove colour</button>
+    <button onclick="colour1()">colour 1</button>
+    <button onclick="colour2()">colour 2</button>
+    <button onclick="colour3()">colour 3</button>
 
-    <!--<button onclick="saveAsPNG()">Save as PNG</button>
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>-->
+
+
+    <button onclick="saveAsPNG('board')">Save as PNG</button>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script><!---->
 
     
 
@@ -207,9 +217,9 @@
 
     <script>
 
-        function saveAsPNG() {
+        function saveAsPNG(id) {
             // Get the div element
-            var div = document.getElementById("demoBoard2");
+            var div = document.getElementById(id);
             console.log(div)
           
             // Use HTML2Canvas to convert the contents of the div to an image
@@ -233,6 +243,12 @@
         const whiteMovebox = document.getElementById("whiteMoves");
         const blackMovebox = document.getElementById("blackMoves");
         const turnNumber = document.getElementById("turnNumber");
+        var evaluation = document.getElementById("eval")
+        var evaluatedNodes = document.getElementById("nodes")
+        var evaluatedNodesThisMove = document.getElementById("nodesThisMove")
+        evaluation.innerHTML = '0'
+        evaluatedNodes.innerHTML = '0'
+        evaluatedNodesThisMove.innerHTML = '0'
 
         var turnIndex = 0;
 
@@ -292,10 +308,47 @@
                     square.classList.add("dark");
                 }
                 square.innerHTML = String(squareIndexToWCDFIndex(i*8 + j));
+                //square.innerHTML = String(Math.pow(2, squareIndexToBitIndex(i*8 + j)));
                 row.appendChild(square);
             }
             demoBoard.appendChild(row);
         }/**/
+
+        function noColour() {
+            for (const square of gridSquares) {
+                if (square.style.backgroundColor) {
+                    square.style.backgroundColor = "";
+                }
+            }
+        }
+
+        function colour1() {
+            noColour();
+            for (const square of gridSquares) {
+                if (square.id == "13" || square.id == "17") {
+                    square.style.backgroundColor = "red";
+                }
+            }
+        }
+
+        function colour2() {
+            noColour();
+            for (const square of gridSquares) {
+                if (square.id == "16" || square.id == "25") {
+                    square.style.backgroundColor = "red";
+                }
+            }
+        }
+
+        function colour3() {
+            noColour();
+            for (const square of gridSquares) {
+                if (square.id == "22" || square.id == "15" || square.id == "6" || square.id == "29") {
+                    square.style.backgroundColor = "red";
+                }
+            }
+        }
+
 
         /*const demoBoard2 = document.getElementById("demoBoard2");
         for (let i = 0; i < 8; i++) {
@@ -390,6 +443,7 @@
                 turnIndex++;
                 let turn = document.createElement("div");
                 turn.innerHTML = turnIndex + '. ';
+                turn.style.border = "1px solid black";
                 turnNumber.appendChild(turn);
             } else {
                 box = blackMovebox;
@@ -421,7 +475,7 @@
 
 
         function setBoard(whiteMen, blackMen, whiteKings = [], blackKings = []) {
-            console.log("setBoard", whiteMen, blackMen, whiteKings, blackKings)
+            //console.log("setBoard", whiteMen, blackMen, whiteKings, blackKings)
             for (let i = 0; i < 64; i++) {
                 gridSquares[i].innerHTML = "";
             }
@@ -442,10 +496,8 @@
         }
 
         function addDots(squares) {
-            console.log("addDots", squares)
             for (let i = 0; i < squares.length; i++) {
                 let square = document.getElementById(squares[i]);
-                console.log(square)
                 square.classList.add("dot");
             }
         }
@@ -561,6 +613,12 @@
                     const whiteKings = data.whiteKing;
                     const blackKings = data.blackKing;
                     const moveString = data.moveString;
+                    const thisEval = data.evaluation;
+                    const nodeCount = data.evaluatedNodes;
+                    const thisNodeCount = data.evaluatedNodesThisMove;
+                    if (thisEval !== "nan") evaluation.innerHTML = thisEval
+                    evaluatedNodes.innerHTML = nodeCount
+                    evaluatedNodesThisMove.innerHTML = thisNodeCount
                     const colour = gameData.playAs == 'w' ? 'b' : 'w';
                     addMove(moveString, colour);
                     setBoard(whiteMen, blackMen, whiteKings, blackKings);
@@ -568,6 +626,65 @@
                     console.error(error);
                 });
         });
+
+
+        document.getElementById("puzzle").addEventListener('click', () => {
+            gameover = false;
+            if (selectedPiece) document.getElementById(selectedPiece).classList.remove("selected");
+            selectedPiece = null;
+            clearDots();
+            axios.get('/reset')
+                .then(response => {
+                    const data = response.data;
+                    const whiteMen = data.whiteMen;
+                    const blackMen = data.blackMen;
+                    const whiteKings = data.whiteKing;
+                    const blackKings = data.blackKing;
+                    setBoard(whiteMen, blackMen, whiteKings, blackKings);
+                    clearMoveboxes();
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+            axios.get('/puzzle')
+                .then((response) => {
+                    console.log('puzzle data', response.data);
+                    //console.log(printBoard(this.checkers.board.white, this.checkers.board.black, this.checkers.board.king, false))
+                    getData();
+                    console.log(gameData)
+                    //const data = response.data;
+                    //const whiteMen = data.whiteMen;
+                    //const blackMen = data.blackMen;
+                    //const whiteKings = data.whiteKing;
+                    //const blackKings = data.blackKing;
+                    //setBoard(whiteMen, blackMen, whiteKings, blackKings);
+                })
+                .catch((error) => {
+                    console.error(error);
+                });
+            axios.get('/aimove')
+                .then(response => {
+                    const data = response.data;
+                    console.log(data)
+                    const whiteMen = data.white;
+                    const blackMen = data.black;
+                    const whiteKings = data.whiteKing;
+                    const blackKings = data.blackKing;
+                    const moveString = data.moveString;
+                    const thisEval = data.evaluation;
+                    const nodeCount = data.evaluatedNodes;
+                    const thisNodeCount = data.evaluatedNodesThisMove;
+                    if (thisEval !== "nan") evaluation.innerHTML = thisEval
+                    evaluatedNodes.innerHTML = nodeCount
+                    evaluatedNodesThisMove.innerHTML = thisNodeCount
+                    const colour = gameData.playAs == 'w' ? 'b' : 'w';
+                    addMove(moveString, colour);
+                    setBoard(whiteMen, blackMen, whiteKings, blackKings);
+                }).catch(error => {
+                    console.error(error);
+                });
+        });
+
         
         /*axios.get('/update_kings')
             .then(response => {
@@ -614,7 +731,6 @@
                     } else {
                         validateMove(selectedPiece, pieceId)
                             .then((isValid) => {
-                                console.log('isValid', isValid)
                                 if (isValid) {
                                     //console.log("5");
                                     axios.post('/play', { start: selectedPiece, end: pieceId })
@@ -643,6 +759,12 @@
                                                         const whiteKings = data.whiteKing;
                                                         const blackKings = data.blackKing;
                                                         const moveString = data.moveString;
+                                                        const thisEval = data.evaluation;
+                                                        const nodeCount = data.evaluatedNodes;
+                                                        const thisNodeCount = data.evaluatedNodesThisMove;
+                                                        if (thisEval !== "nan") evaluation.innerHTML = thisEval
+                                                        evaluatedNodes.innerHTML = nodeCount
+                                                        evaluatedNodesThisMove.innerHTML = thisNodeCount
                                                         const colour = gameData.playAs == 'w' ? 'b' : 'w';
                                                         addMove(moveString, colour);
                                                         setBoard(whiteMen, blackMen, whiteKings, blackKings);
@@ -709,7 +831,6 @@
 
 
         function validateMove(start, end) {
-            console.log('validateMove', start, end)
             if (!validateSelection(start)) {
                 return Promise.resolve(false);
             }
@@ -719,8 +840,6 @@
           
             return axios.post('/check_move', { start: start, end: end })
                 .then((response) => {
-                    console.log('response', response.data);
-                    console.log('equal', response.data == true)
                     return response.data == true;
                 })
                 .catch((error) => {

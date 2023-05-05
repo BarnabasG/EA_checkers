@@ -21,7 +21,7 @@ console.log('saved layouts', Object.keys(boardStatsDatabase).length);*/
 //Will look at draft if sent before friday 24th March /////////
 // add para on what else you will cover and what you want feedback on
 
-const DRAW_SCORE = 0.4;
+const DRAW_SCORE = 0.38;
 
 export class Checkers {
 
@@ -63,7 +63,7 @@ export class Checkers {
         if (trainingParams == undefined) {
             trainingParams = {
                 trainingMethod: 'STP1',
-                standardStartGeneration: 0,
+                startGeneration: 0,
                 generations: 5
             }
         }
@@ -149,63 +149,37 @@ export class Checkers {
 
     compete(indexes: number[]): number {
 
-        //console.log('competing', indexes[0], indexes[1])
 
         let checkers = new CheckersGame();
         let status = 0;
         let moveIndex = 0;
-        //let weights: BoardStats;
 
-        //console.log(indexes)
-
-        //console.log(this.population.population.get(indexes[0])['weights'])
-        //console.log(this.population.population.get(indexes[1])['weights'])
-
-        //console.log(this)
-        //console.log(this.population.population.get(indexes[0]))
-        //console.log(this.population.population.get(indexes[0]))
-        //const whiteWeights = this.population.population.get(indexes[0])['weights']
-        //const blackWeights = this.population.population.get(indexes[1])['weights'];
 
         let boardStack: number[][] = [];
         let nonManMoves: number = 0;
 
-        //console.log(whiteWeights, blackWeights)
-    
-        //setTimeout(() => {
+
         while (moveIndex < this.moveLimit) {
-            //console.log('move', moveIndex, checkers.player === Player.WHITE ? 'white' : 'black')
             let moves = checkers.getMoves();
-            //console.log(moves)
             status = (moves.length == 0) ? (checkers.player === Player.WHITE ? Status.BLACK_WON : Status.WHITE_WON) : Status.PLAYING;
             if (status !== 0) {
-                //printBoard(checkers.board.white, checkers.board.black, checkers.board.king);
-                //console.log('Game Over', moveIndex, status, Status[status]);
-                //console.log(status == 1 ? 'white won' : 'black won');
-                //printBoard(checkers.board.white, checkers.board.black, checkers.board.king);
                 return status;
             }
-            //console.log(`${moves.length} moves found (turn ${moveIndex})`)
-            //weights = checkers.player === Player.WHITE ? checkers.population.population[index1]['weights'] : checkers.population.population[index2]['weights'];
-            //weights = checkers.player === Player.WHITE ? whiteWeights : blackWeights;
-            //let move = minimax(checkers, this.depth, weights);
-            //console.log('using weights from', checkers.player === Player.WHITE ? 'white' : 'black')
-            //let move = minimax(checkers, this.depth, checkers.player === Player.WHITE ? whiteWeights : blackWeights);
             let move = minimax(checkers, this.depth, this.population.population, checkers.player === Player.WHITE ? indexes[0] : indexes[1], this.boardStatsDatabase);
-            //let move = minimax(checkers, this.depth, whiteWeights, blackWeights);
-            //console.log('move', move)
             checkers = checkers.makeMove(move);
-
-            //console.log("here")
 
             (move.end & checkers.board.king) && !move.captures ? nonManMoves++ : nonManMoves = 0;
             boardStack.push([checkers.board.white, checkers.board.black, checkers.board.king]);
-            if (boardStack.length > 5) boardStack.shift();
+            if (boardStack.length > 10) boardStack.shift();
 
             //console.log("here2")
 
             let s = checkDraw(boardStack, nonManMoves)
-            if (s < 0) return s;
+            if (s !== Status.PLAYING) {
+                //console.log(Status[s])
+                //printBoard(checkers.board.white, checkers.board.black, checkers.board.king)
+                return s;
+            }
 
             //console.log("here3")
             
@@ -230,322 +204,6 @@ export class Checkers {
         //printBoard(checkers.board.white, checkers.board.black, checkers.board.king);
         
     }
-
-    /*async compete(indexes: number[]): Promise<number> {
-
-        console.log("compete called")
-        try {
-            const status = await this.runCompete(indexes);
-            console.log('status', status)
-            return status;
-        } catch (err) {
-            console.error(err);
-            return 0;
-        }
-    }
-
-    async runCompete(indexes: number[]): Promise<number> {
-        //console.log('running compete', indexes)
-        const maxTime = Math.pow(this.depth,2) * 1000;
-        let timer: ReturnType<typeof setTimeout>;
-
-
-        const timeoutPromise = new Promise<number>((resolve, reject) => {
-            console.log('timeout promise', maxTime)
-            //let timer: ReturnType<typeof setTimeout> = setTimeout(() => {
-            timer = setTimeout(() => {
-                console.log('Timeout function called');
-                reject(0);
-                console.log(`Function timed out after ${maxTime}ms`)
-            }, maxTime)
-            //clearTimeout(timer)
-            console.log('after')
-        });
-        
-        //console.log('starting compete')
-        //console.log(timeoutPromise)
-        //console.log(timer)
-        try {
-            //console.log('1')
-            const result = await Promise.race([this.competePromise(indexes), timeoutPromise]);
-            console.log('resolved with result:', result);
-            return result;
-        } catch (err) {
-            console.log('2')
-            console.error('rejected with error:', err);
-            return 0;
-        }
-    }
-
-
-
-    competePromise(indexes: number[]): Promise<number> {
-        //console.log('running competePromise', indexes)
-        let checkers = new CheckersGame();
-        let status = 0;
-        let moveIndex = 0;
-
-        let boardStack: number[][] = [];
-        let nonManMoves: number = 0;
-
-        while (moveIndex <= this.moveLimit) {
-            let moves = checkers.getMoves();
-            status = (moves.length == 0) ? (checkers.player === Player.WHITE ? Status.BLACK_WON : Status.WHITE_WON) : Status.PLAYING;
-            if (status !== 0) {
-                //console.log(status)
-                return Promise.resolve(status);
-            }
-            let move = minimax(checkers, this.depth, this.population.population, checkers.player === Player.WHITE ? indexes[0] : indexes[1]);
-            checkers = checkers.makeMove(move);
-
-            move.end && checkers.board.king ? nonManMoves++ : nonManMoves = 0;
-            boardStack.push([checkers.board.white, checkers.board.black, checkers.board.king]);
-            if (checkDraw(boardStack, nonManMoves)) break;
-            moveIndex++;
-        }
-        return Promise.resolve(0);
-        
-    }
-
-    getAndExecutePromises(matches: number[][]): number[] {
-
-        //console.log(matches)
-        //const promises = matches.map((match) => this.competePromise(match));
-        const promises = matches.map((match) => this.runCompete(match));
-
-        console.log("<><><><><><><><><><><><><><><><><><><><><><><><>")
-        console.log("promises done", promises);
-        console.log("<><><><><><><><><><><><><><><><><><><><><><><><>")
-
-        Promise.all(promises)
-            .then(results => {
-                // handle successful results
-                console.log(results);
-                return results;
-            })
-            .catch(error => {
-                // handle error
-                console.error(error);
-                throw new Error('Error in getAndExecutePromises');
-            });
-
-        return [];
-    
-    }*/
-
-    //standardTraining(method: string, generations: number = 10) {
-    //standardTraining(trainingParams: TrainingParams) {
-    /*standardTraining(method: string) {
-
-        if (!(method in STANDARD_TRAINING_PATTERNS)) {
-            console.error('Invalid standard method');
-            return;
-        }
-
-        //const pattern: Pattern = STANDARD_TRAINING_PATTERNS[method];
-
-        const pattern: Pattern = STANDARD_TRAINING_PATTERNS[method];
-
-        const maxDefGen = Math.max(...Object.getOwnPropertyNames(pattern).map(Number).filter(n => n !== 999));
-
-        var defaultValues: TrainingParams = {
-            //trainingMethod: 'RR',
-            standardStartGeneration: 0,
-            depth: undefined,
-            moveLimit: 150,
-            generations: maxDefGen,
-            populationSize: undefined,
-            competitionType: 0,
-            selectionMethod: 0,
-            learningRate: undefined,
-            selectionPercent: undefined,
-            keepTopPercent: undefined,
-            test: true,
-            populationSizePattern: undefined,
-            matchCount: undefined,
-        };
-
-        
-
-        //config values
-        if (999 in pattern) defaultValues = this.getParams(defaultValues, pattern[999]);
-
-        let params: TrainingParams = this.getParams(defaultValues, pattern[0]);
-
-        let matches: number[][];
-        //this.moveLimit = params.moveLimit;
-        //this.moveLimit = trainingParams.moveLimit;
-        this.moveLimit = defaultValues.moveLimit;
-        //let moveLimit: number;
-        //let depth: number;
-        //let population: Population;
-
-        //let testScores: TestScore[] = [];
-        let testScores: TestResults[] = [];
-        let winners: BoardStats[] = [];
-
-        //this.population = new Population(params[standardStartGeneration].populationSize);
-        //this.population = new Population(pattern[standardStartGeneration].populationSize);
-        this.population = new Population(params.populationSize);
-
-        //const trainingInstance = 'generation_log/log_'.concat(new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-'), '.json');
-        const trainingInstance = 'generation_log/log_'.concat(new Date().toLocaleString().replace(/:/g, '-').replace(/\//g, '-').replace(/ /g, '_').replace(/,/g, ''), '.json');
-
-        //const maxDefGen = pattern.k
-        
-        //writeToFile('testScores_log.txt', JSON.stringify(trainingParams));
-
-        //let params: TrainingParams; //= this.getParams(defaultValues, pattern[0]);
-
-        //console.log(Math.max(...Object.getOwnPropertyNames(pattern).map(Number).filter(n => n !== 999)));
-        //const maxDefGen = Math.max(...Object.getOwnPropertyNames(pattern).map(Number).filter(n => n !== 999));
-
-
-        for (let gen=params.standardStartGeneration; gen<params.generations; gen++) {
-            
-            console.log(`generation ${gen+1}/${params.generations} (${gen})`)
-            params = this.getParams(defaultValues, pattern[Math.min(maxDefGen, gen)]);
-            //this.population = new Population(pattern[gen].populationSize);
-
-            console.log(gen, params)
-
-            //this.depth = pattern[Math.min(10, gen+1)].depth;
-            this.depth = params.depth;
-
-            //this.population.randomiseWeights();
-
-            //console.log(params)
-
-            const now = new Date();
-            const hours = now.getHours().toString().padStart(2, '0');
-            const minutes = now.getMinutes().toString().padStart(2, '0');
-            const seconds = now.getSeconds().toString().padStart(2, '0');
-            const time = `${hours}_${minutes}_${seconds}: `;
-            writeToFile('testScores_log.txt', '\n'.concat(time," ",gen.toString(),": "));
-
-
-            matches = getPopulationMatches(params.populationSize, params.competitionType, params.matchCount);
-
-            //this.moveLimit = trainingParams.moveLimit;
-            let value: WeightSet;
-            let index: number;
-
-            //let promises: Promise<number>[] = [];
-
-            let genStart = performance.now();
-            
-            console.log("Starting matches")
-
-            const results = this.getAndExecutePromises(matches);
-            console.log(results)
-
-            for (let j = 0; j < results.length; j++) {
-                if (results[j] === 0) {
-                    value = this.population.population.get(matches[j][0]);
-                    value['score'] += DRAW_SCORE;
-                    this.population.population.set(matches[j][0], value);
-                    value = this.population.population.get(matches[j][1]);
-                    value['score'] += DRAW_SCORE;
-                    this.population.population.set(matches[j][1], value);
-                    //console.log('draw', index1, index2)
-                } else {
-                    index = results[j] === 1 ? matches[j][0] : matches[j][1];
-                    value = this.population.population.get(index);
-                    value['score'] += 1;
-                    this.population.population.set(index, value);
-                }
-            }
-
-            /*for (let j = 0; j < matches.length; j++) {
-                //if (j%10 == 0 && this.depth > 5) console.log(`match ${j}/${matches.length}`)
-                if (j%10 == 0) console.log(`match ${j}/${matches.length}`)
-                let index1 = matches[j][0];
-                let index2 = matches[j][1];
-                //setTimeout(() => {
-                //let status = await this.compete([index1, index2]);
-                //let status: number;
-                this.compete([index1, index2]).then((result) => {
-                    promises.push(result);
-                }).catch((err) => {
-                    status = 0;
-                    console.error(err);
-                });
-                if (status === 0) {
-                    value = this.population.population.get(index1);
-                    value['score'] += DRAW_SCORE;
-                    this.population.population.set(index1, value);
-                    value = this.population.population.get(index2);
-                    value['score'] += DRAW_SCORE;
-                    this.population.population.set(index2, value);
-                    //console.log('draw', index1, index2)
-                } else {
-                    index = status === 1 ? index1 : index2;
-                    value = this.population.population.get(index);
-                    value['score'] += 1;
-                    this.population.population.set(index, value);
-                }
-                //this.population.population.set(index, value);
-            }*
-            console.log(this.population.getScores())
-            winners.push(this.population.getBestWeights());
-
-            let testScore: TestResults;
-            if (params.test) {
-                let testStart = performance.now();
-                testScore = this.testPopulation();
-                let testTime = performance.now() - testStart;
-                testScore['testTime'] = testTime;
-                console.log(testScore)
-                console.log('test time', testTime);
-                testScores.push(testScore);
-                writeToFile('testScores_log.txt', time.concat(" ",gen.toString(),": "));
-                writeToFile('testScores_log.txt', JSON.stringify(testScore));
-            } else {
-                console.log("no test")
-                writeToFile('testScores_log.txt', time.concat(" ",gen.toString()));
-                //testScore = {testTime: 0, testScore: 0, testDraws: 0, testWins: 0, testLosses: 0};
-            }
-
-            let popData = this.getPopulationMap();
-            if (params.test) popData.set('testScore', testScore);
-            popData.set('generation', gen);
-            let genTime = performance.now() - genStart;
-            popData.set('generation time', genTime);
-            const savePop = Object.fromEntries(popData);
-            //console.log('popdata',savePop)
-            writeToFile(trainingInstance, JSON.stringify(savePop));
-            console.log(`${genTime}ms`)
-            //writeToFile(trainingInstance, `generation time: ${genTime}ms`);
-            //TODO: get max defined generation rather than hard code 10
-            //console.log('next generation id', Math.min(10, gen+1))
-            if (gen+1 < params.generations) this.population.nextGeneration({ size: pattern[Math.min(maxDefGen, gen+1)].populationSize });
-            //console.log(population.getScores())
-        }
-        console.log("generations complete")
-        //console.log(testScores)
-        /this.population.nextGeneration({ size: 100 });
-        let testStart = performance.now();
-        let scores = this.testPopulation(true);
-        let testTime = performance.now() - testStart;
-        scores['testTime'] = testTime;
-        console.log(scores)
-        console.log('test time', testTime);
-        testScores.push(scores);
-
-        let popData = this.getPopulationMap();
-        popData.set('testScore', scores);
-        popData.set('generation', 'final');
-        const savePop = Object.fromEntries(popData);
-        //console.log('popdata',savePop)
-        writeToFile(trainingInstance, JSON.stringify(savePop));
-        winners.push(this.population.getBestWeights());
-
-        console.log(testScores)
-
-
-        this.bestWeights = this.testWinners(winners);*
-        
-    }*/
 
     setDepth(depth: number) {
         this.depth = depth;
@@ -577,7 +235,7 @@ export class Checkers {
 
         var defaultValues: TrainingParams = {
             //trainingMethod: 'RR',
-            standardStartGeneration: startGen,
+            startGeneration: startGen,
             depth: undefined,
             moveLimit: 250,
             generations: maxDefGen,
@@ -607,7 +265,7 @@ export class Checkers {
         let params: TrainingParams;
         let popParams: PopulationParams;
 
-        params = this.getParams(defaultValues, pattern[Math.min(maxDefGen, defaultValues.standardStartGeneration!)]);
+        params = this.getParams(defaultValues, pattern[Math.min(maxDefGen, defaultValues.startGeneration!)]);
         
         let popOverride: boolean = false;
         if (initPop) {
@@ -623,7 +281,7 @@ export class Checkers {
         }
         this.setPopulation(popParams!);
         console.log(params)
-        console.log(this.population.population)
+        //console.log(this.population.population)
 
 
         let matches: number[][];
@@ -657,7 +315,7 @@ export class Checkers {
         var trainingInstance: string;
         let logtime = new Date().toLocaleString().replace(/:/g, '-').replace(/\//g, '-').replace(/ /g, '_').replace(/,/g, '');
         if (logfile) {
-            trainingInstance = `generation_log/${logfile}_CONTINUED_${logtime}`;
+            trainingInstance = `generation_log/${logfile}_CONTINUED_${logtime}.txt`;
             writeToFile(trainingInstance, `\n\n//CONTINUING TRAINING - ${logfile}//\n`);
             writeToFile('testScores_log.txt', '//CONTINUING TRAINING//'+logfile);
         } else {
@@ -674,9 +332,9 @@ export class Checkers {
         //const maxDefGen = Math.max(...Object.getOwnPropertyNames(pattern).map(Number).filter(n => n !== 999));
 
 
-        for (let gen=params.standardStartGeneration!; gen<params.generations!; gen++) {
+        for (let gen=params.startGeneration!; gen<params.generations!; gen++) {
             
-            console.log(`generation ${gen+1}/${params.generations} (${gen})`)
+            console.log(`generation ${gen}/${params.generations!-1}`)
             params = this.getParams(defaultValues, pattern[Math.min(maxDefGen, gen)]);
             //this.population = new Population(pattern[gen].populationSize);
             if (popOverride) {
@@ -714,7 +372,7 @@ export class Checkers {
             console.log("Starting matches")
             for (let j = 0; j < matches.length; j++) {
                 //if (j%10 == 0 && this.depth > 5) console.log(`match ${j}/${matches.length}`)
-                if (j%10 == 0) console.log(`match ${j}/${matches.length}`)
+                if (j%10 == 0) console.log(`Generation ${gen}: match ${j}/${matches.length}`)
                 //console.log(`match ${j}/${matches.length}`)
                 let index1 = matches[j][0];
                 let index2 = matches[j][1];
@@ -888,13 +546,13 @@ export class Checkers {
             let m = properties[prop].reduce((a, b) => a + b) / properties[prop].length
             let sd = getStandardDeviation(properties[prop]);
             stats[prop] = {
-                sum: properties[prop].reduce((a, b) => a + b),
-                min: Math.min(...properties[prop]),
-                max: Math.max(...properties[prop]),
-                mean: m,
-                stdDev: sd,
-                lowerBound: m-sd,
-                upperBound: m+sd
+                sum: roundTo(properties[prop].reduce((a, b) => a + b), 4),
+                min: roundTo(Math.min(...properties[prop]), 4),
+                max: roundTo(Math.max(...properties[prop]), 4),
+                mean: roundTo(m, 4),
+                stdDev: roundTo(sd, 4),
+                lowerBound: roundTo(m-sd, 4),
+                upperBound: roundTo(m+sd, 4)
             }
         }
 
@@ -939,6 +597,8 @@ export class Checkers {
 
         let testIds: number[] = [];
 
+        let resultsRandom: TestScore = {score: 0, winloss: 0, wins: 0, losses: 0, draws: 0, lossRate: 0, winRate: 0, botType: 'random'};
+
         testIds.push(this.population.addTestBot());
         let resultsNaive: TestScore = {score: 0, winloss: 0, wins: 0, losses: 0, draws: 0, lossRate: 0, winRate: 0, botType: 'naive'};
         let matchesNaive: number[][] = [];
@@ -949,11 +609,12 @@ export class Checkers {
         //console.log(this.population)
 
         //if (this.population.size > 30 && !testAll) {
+        let testOpps: number[]
         if (!testAll) {
-            let count = Math.min(Math.max(Math.min(10, this.population.size), this.population.size * 0.5), 50);
+            let count = Math.min(Math.max(Math.min(5, this.population.size), Math.floor(this.population.size * 0.5)), 50);
             console.log(`reducing population to ${count} for testing (from ${this.population.size})`)
             //const testOpps = getRandomSample([...Array(this.population.size).keys()], 200)
-            const testOpps = this.population.getBestNMembers(count);
+            testOpps = this.population.getBestNMembers(count);
             console.log(testOpps)
             for (let i = 0; i < testOpps.length; i++) {
                 matchesNaive.push([testIds[0], testOpps[i]]);
@@ -963,6 +624,7 @@ export class Checkers {
             }
             //console.log(matches)
         } else {
+            testOpps = [...Array(this.population.size).keys()];
             for (let i = 0; i < this.population.size; i++) {
                 //for (const id of testIds) {
                 matchesNaive.push([testIds[0], i]);
@@ -972,25 +634,67 @@ export class Checkers {
             }
         }
 
+        function randomCompete(botIndex: number, randomPlayer: Player, moveLimit: number, depth: number, population: Map<number, WeightSet>, boardStatsDatabase: HashMap): Status {
+            let checkers = new CheckersGame();
+            let status = 0;
+            let moveIndex = 0;
+
+            let boardStack: number[][] = [];
+            let nonManMoves: number = 0;
+
+            while (moveIndex < moveLimit) {
+                let moves = checkers.getMoves();
+                status = (moves.length == 0) ? (checkers.player === Player.WHITE ? Status.BLACK_WON : Status.WHITE_WON) : Status.PLAYING;
+                if (status !== 0) {
+                    return status;
+                }
+                let move: Move;
+                if (checkers.player == randomPlayer) {
+                    move = moves[Math.floor(Math.random() * moves.length)];
+                } else {
+                    move = minimax(checkers, depth, population, botIndex, boardStatsDatabase);
+                }
+                checkers = checkers.makeMove(move);
+
+                (move.end & checkers.board.king) && !move.captures ? nonManMoves++ : nonManMoves = 0;
+                boardStack.push([checkers.board.white, checkers.board.black, checkers.board.king]);
+                if (boardStack.length > 10) boardStack.shift();
+
+                let s = checkDraw(boardStack, nonManMoves)
+                if (s !== Status.PLAYING) {
+                    return s;
+                }
+                moveIndex++;
+            }
+            return Status.DRAW_MOVELIMIT;
+        }
+
+        function applyScoreRandom(status: Status, results: TestScore, white: boolean) {
+            if (status > 2) {
+                results.draws += 1;
+            } else if ((status === Status.WHITE_WON && white) || (status === Status.BLACK_WON && !white)) {
+                results.wins += 1;
+            } else {
+                results.losses += 1;
+            }
+        }
+
+        for (let j = 0; j < testOpps.length; j++) {
+            let status = randomCompete(testOpps[j], Player.WHITE, this.moveLimit, this.depth, this.population.population, this.boardStatsDatabase);
+            applyScoreRandom(status, resultsRandom, false);
+            status = randomCompete(testOpps[j], Player.BLACK, this.moveLimit, this.depth, this.population.population, this.boardStatsDatabase);
+            applyScoreRandom(status, resultsRandom, true);
+
+            //console.log(`random test ${j} of ${testOpps.length} complete`)
+        }
+        console.log(resultsRandom)
+
         
         //let times: number[][] = [];
         for (let j = 0; j < matchesNaive.length; j++) {
             let index1 = matchesNaive[j][0];
             let index2 = matchesNaive[j][1];
-            //let s = performance.now();
             let status = this.compete([index1, index2]);
-            //let e = performance.now();
-            //times.push([index1, index2, e - s, status]);
-            //let status = await this.compete([index1, index2]);
-            /*let status: number;
-            this.compete([index1, index2]).then((result) => {
-                status = result;
-            }).catch((err) => {
-                status = 0;
-                console.error(err);
-            });*/
-            
-            //console.log((status === 1 && index1 === -1) || (status === 2 && index2 === -1))
 
             if (status > 2) {
                 resultsNaive.draws += 1;
@@ -1000,42 +704,29 @@ export class Checkers {
                 resultsNaive.losses += 1;
             }
         }
-        //console.log(times)
+
 
         //times = [];
         for (let j = 0; j < matchesGuided.length; j++) {
             let index1 = matchesGuided[j][0];
             let index2 = matchesGuided[j][1];
-            //let s = performance.now();
             let status = this.compete([index1, index2]);
-            //let e = performance.now();
-            //times.push([index1, index2, e - s, status]);
-            //let status = await 
-            //let status = await this.compete([index1, index2]);
-            /*let status: number;
-            this.compete([index1, index2]).then((result) => {
-                status = result;
-            }).catch((err) => {
-                status = 0;
-                console.error(err);
-            });*/
-            //console.log((status === 1 && index1 === -1) || (status === 2 && index2 === -1))
 
             if (status > 2) {
                 resultsGuided.draws += 1;
             } else if ((status === Status.WHITE_WON && index2 === -2) || (status === Status.BLACK_WON && index1 === -2)) {
                 resultsGuided.wins += 1;
-                let winnerIndex = index1 === -2 ? index2 : index1;
-                let weights = this.population.population.get(winnerIndex)!.weights;
-                if (!this.guidedWinners.includes(weights) && writeWinners) {
-                    this.guidedWinners.push(weights);
-                    let log = {
-                        "weights": weights,
-                        "colour": index1 == -2 ? 'black' : 'white',
-                    }
-                    let json = JSON.stringify(log);
-                    writeToFile('guidedWinners.json', json)
-                }
+                //let winnerIndex = index1 === -2 ? index2 : index1;
+                //let weights = this.population.population.get(winnerIndex)!.weights;
+                //if (!this.guidedWinners.includes(weights) && writeWinners) {
+                //    this.guidedWinners.push(weights);
+                //    let log = {
+                //        "weights": weights,
+                //        "colour": index1 == -2 ? 'black' : 'white',
+                //    }
+                //    let json = JSON.stringify(log);
+                //    writeToFile('guidedWinners.json', json)
+                //}
                 
             } else {
                 resultsGuided.losses += 1;
@@ -1045,17 +736,41 @@ export class Checkers {
 
 
         this.depth = _depth;
+
+        function edgeCases(results: TestScore) {
+            if (results.wins == 0) {
+                results.winloss = 0;
+                if (results.draws == 0) {
+                    results.score = 0;
+                }
+            } else if (results.losses == 0 && results.draws == 0) {
+                results.winloss = 1;
+                results.score = 1;
+            } else if (results.losses == 0) {
+                results.winloss = 1;
+            }
+        }
         
         //0.5 used as DRAW_SCORE for testing score to keep evaluation uniform
+        resultsRandom.score = roundTo((resultsRandom.wins + (0.5 * resultsRandom.draws)) / (resultsRandom.wins + resultsRandom.losses + resultsRandom.draws), 3);
         resultsNaive.score = roundTo((resultsNaive.wins + (0.5 * resultsNaive.draws)) / (resultsNaive.wins + resultsNaive.losses + resultsNaive.draws), 3);
         resultsGuided.score = roundTo((resultsGuided.wins + (0.5 * resultsGuided.draws)) / (resultsGuided.wins + resultsGuided.losses + resultsGuided.draws), 3);
 
+        resultsRandom.winloss = roundTo(resultsRandom.wins / (resultsRandom.wins + resultsRandom.losses), 3);
         resultsNaive.winloss = roundTo(resultsNaive.wins / (resultsNaive.wins + resultsNaive.losses), 3);
         resultsGuided.winloss = roundTo(resultsGuided.wins / (resultsGuided.wins + resultsGuided.losses), 3);
 
-        if (resultsNaive.wins == 0) {
+
+        edgeCases(resultsRandom);
+        edgeCases(resultsNaive);
+        edgeCases(resultsGuided);
+
+
+        /*if (resultsNaive.wins == 0) {
             resultsNaive.winloss = 0;
-            resultsNaive.score = 0;
+            if (resultsNaive.draws == 0) {
+                resultsNaive.score = 0;
+            }
         } else if (resultsNaive.losses == 0 && resultsNaive.draws == 0) {
             resultsNaive.winloss = 1;
             resultsNaive.score = 1;
@@ -1065,17 +780,21 @@ export class Checkers {
 
         if (resultsGuided.wins == 0) {
             resultsGuided.winloss = 0;
-            resultsGuided.score = 0;
+            if (resultsNaive.draws == 0) {
+                resultsGuided.score = 0;
+            }
         } else if (resultsGuided.losses == 0 && resultsGuided.draws == 0) {
             resultsGuided.winloss = 1;
             resultsGuided.score = 1;
         } else if (resultsGuided.losses == 0) {
             resultsGuided.winloss = 1;
-        }
+        }*/
 
-
+        resultsRandom.lossRate = roundTo(resultsRandom.losses / (resultsRandom.wins + resultsRandom.losses + resultsRandom.draws), 3);
         resultsNaive.lossRate = roundTo(resultsNaive.losses / (resultsNaive.wins + resultsNaive.losses + resultsNaive.draws), 3);
         resultsGuided.lossRate = roundTo(resultsGuided.losses / (resultsGuided.wins + resultsGuided.losses + resultsGuided.draws), 3);
+
+        resultsRandom.winRate = roundTo(resultsRandom.wins / (resultsRandom.wins + resultsRandom.losses + resultsRandom.draws), 3);
         resultsNaive.winRate = roundTo(resultsNaive.wins / (resultsNaive.wins + resultsNaive.losses + resultsNaive.draws), 3);
         resultsGuided.winRate = roundTo(resultsGuided.wins / (resultsGuided.wins + resultsGuided.losses + resultsGuided.draws), 3);
 
@@ -1084,7 +803,7 @@ export class Checkers {
             this.population.destroyBot(testIds[i]);
         }
 
-        let results: TestResults = {'naive': resultsNaive, 'guided': resultsGuided}; 
+        let results: TestResults = {'random': resultsRandom, 'naive': resultsNaive, 'guided': resultsGuided}; 
         
         //console.log('test results', results)
 
@@ -1189,7 +908,7 @@ export class Checkers {
         const table = generateResultsTable(results, bots, scores);
         console.table(table);
 
-        writeToFile('testScores.txt', JSON.stringify(results));
+        //writeToFile('testScores.txt', JSON.stringify(results));
         writeToFile('testScores_log.txt', JSON.stringify(table));
         
 
@@ -1342,7 +1061,7 @@ export class Checkers {
 
     }
 
-    generatePreloadedDatabase(openingDepth: number = 8, gameDepth: number = 9, maxPieces = 4) {
+    generatePreloadedDatabase(openingDepth: number = 8, gameDepth: number = 9, maxPieces: number = 6) {
         this.boardStatsDatabase.generate(openingDepth, gameDepth, maxPieces);
     }
 

@@ -2,7 +2,7 @@
 //import { Board } from "./board";
 //import { Checkers } from "./checkers";
 //import {  } from "./bloomDatabase";
-import { BoardStats, Status, Result, WeightSet, WeightInit, Player } from "./types";
+import { BoardStats, Status, Result, WeightSet, WeightInit, Player, Move } from "./types";
 
 //let s1 = performance.now();
 //import boardDB from '../boardDB_6.json';
@@ -79,7 +79,7 @@ export function getBoardStatsDatabase() {
     console.log('saved layouts after', Object.keys(db).length);
 }*/
 
-export function decToBin(dec: number) {
+export function decToBin(dec: number): string {
     return (dec >>> 0).toString(2);
 }
 
@@ -90,6 +90,15 @@ export function generateBin(n: number = 32): Record<number, number> {
         BIN[i] = BIN[i-1] * 2;
     }
     return BIN;
+}
+
+export function binIndexesToBin(binIndexes: number[]): number {
+    let bin = 0;
+    for (let i=0; i<binIndexes.length; i++) {
+        bin += 1 << binIndexes[i];
+        //console.log(binIndexes[i], bin)
+    }
+    return bin;
 }
 
 export function pad(n: string, width=32, z: string = '0') {
@@ -261,6 +270,8 @@ export function getWeights(weightInit: WeightInit): BoardStats {
     switch (weightInit) {
         case WeightInit.RANDOM:
             return getRandomWeights();
+        case WeightInit.RANDOMPOSITIVE:
+            return getRandomPositiveWeights();
         case WeightInit.ZERO:
             return getInitBoardStats(0);
         case WeightInit.ONE:
@@ -271,6 +282,8 @@ export function getWeights(weightInit: WeightInit): BoardStats {
             return getCapturePrefer();
         case WeightInit.TEST:
             return getTestWeights();
+        case WeightInit.TRAINED:
+            return getTrainedWeights();
         default:
             return getRandomWeights();
     }
@@ -309,6 +322,22 @@ function getRandomWeights(): BoardStats {
     }
 }
 
+function getRandomPositiveWeights(): BoardStats {
+    return {
+        pieces: Math.random(),
+        kings: Math.random(),
+        avrDist: Math.random(),
+        backline: Math.random(),
+        corners: Math.random(),
+        edges: Math.random(),
+        centre2: Math.random(),
+        centre4: Math.random(),
+        centre8: Math.random(),
+        defended: Math.random(),
+        attacks: Math.random(),
+    }
+}
+
 export function getCapturePrefer(): BoardStats {
     return {
         pieces: 1,
@@ -341,10 +370,38 @@ export function getTestWeights(): BoardStats {
     }
 }
 
+export function getTrainedWeights(): BoardStats {
+    return {
+        pieces: 1.9567,
+        kings: 1.6984,
+        avrDist: -1.764,
+        backline: 0.887,
+        corners: 0.918,
+        edges: 1.055,
+        centre2: -0.4836,
+        centre4: 1.416,
+        centre8: 0.5351,
+        defended: -0.715,
+        attacks: 0.0118
+
+        /*pieces: 1.463598210928826,
+        kings: 1.1754549874237703,
+        avrDist: 0.688827059204624,
+        backline: 0.03311312117447411,
+        corners: 0.3405034818255814,
+        edges: 1.7260593940817959,
+        centre2: -0.18244112696247333,
+        centre4: 0.001300053814921473,
+        centre8: 2.340136341332912,
+        defended: 0.16959424599386022,
+        attacks: -1.1544734069298368*/
+    }
+}
+
 export function getBestBoardDefault(): BoardStats {
     return {
-        pieces: 12,
-        kings: 12,
+        pieces: 11,
+        kings: 11,
         avrDist: 7,
         backline: 4,
         corners: 2,
@@ -389,43 +446,8 @@ export function generateKeyComplete(white: number, black: number, king: number):
 
 export function generateKey(value: number, king: number): string {
     return `${value}/${value & king}`;
-    //let key = '';
-    //for (let index = 0; index < 32; index++) {
-    //    let bitPiece = value & (1 << index)
-    //    let bitKing = king & (1 << index)
-    //    key += bitPiece ? bitKing ? 'K' : 'P' : '0';
-    //}
-
-    //console.log('key1', key)
-
-    // compress key with run length encoding (RLE)
-    //key = key.replace(/([ \w])\1+/g, (group, chr) => group.length + chr);
-
-    //console.log('key2', key)
-
-    //return key;
 }
 
-/*export function generateKeyNumber(value: number, king: number, flipBit: 0 | 1): number {
-    const mask = 0xFFFFFFFF - ((1 << 16) - 1); // create a mask that zeroes out the least significant 16 bits
-    const uniqueKey = (value & mask) | (king & 0xFFFF);
-    return flipBit === 1 ? uniqueKey ^ 1 : uniqueKey;
-}*/
-
-//export function generateKeyNumber(value: number, king: number): number {
-//    const mask = 0xFFFFFFFF - ((1 << 16) - 1); // create a mask that zeroes out the least significant 16 bits
-//    const uniqueKey = (value & mask) | (king & 0xFFFF);
-//    return uniqueKey
-//}
-
-/*export function reverseBits1(num: number): number {
-    let result = 0;
-    for (let i = 0; i < 32; i++) {
-        result = (result << 1) | (num & 1);
-        num >>>= 1;
-    }
-    return result << 16 | result >>> 16;
-}*/
 
 export function reverseBits(x: number) {
     x = ((x >> 1) & 0x55555555) | ((x & 0x55555555) << 1);
@@ -518,7 +540,7 @@ export function randomOppMatches(popSize: number, matchCount: number): number[][
 
 
 
-function popRandom<T>(array: T[]): T | undefined {
+export function popRandom<T>(array: T[]): T | undefined {
     if (array.length === 0) {
       return undefined;
     }
@@ -623,13 +645,13 @@ export function checkDraw(boardStack: number[][], nonManMoves: number): number {
     if (nonManMoves >= 40) return Status.DRAW_40;
 
     //check for draw by repetition
-    if (boardStack.length > 4) {
+    if (boardStack.length > 8) {
         //console.log('boardStack', boardStack.length)
         //for (let i = 0; i < boardStack.length; i++) {
         //    console.log(i, boardStack[i])
         //}
         //console.log('boardStack', boardStack[boardStack.length-1], boardStack[boardStack.length-3], boardStack[boardStack.length-5])
-        if (areListsEqual(boardStack[boardStack.length-1], boardStack[boardStack.length-3], boardStack[boardStack.length-5])) {
+        if (areListsEqual(boardStack[boardStack.length-1], boardStack[boardStack.length-5], boardStack[boardStack.length-9])) {
             return Status.DRAW_REPETITION;
         }
     }
@@ -676,7 +698,7 @@ export function generateInitialPopulation(size: number, weightInit?: WeightInit)
     }
   
     return sample;
-}*/
+}
 
 function getRandomSample<T>(arr: T[], sampleSize: number): T[] {
 	if (sampleSize >= arr.length) {
@@ -690,7 +712,20 @@ function getRandomSample<T>(arr: T[], sampleSize: number): T[] {
 		arr[randomIndex] = arr[arr.length - i - 1];
 	}
 	return sample;
+}*/
+
+export function moveToMoveString(move: Move): string {
+    let captures = ''
+    if (move.captures) {
+        let c = getPresentBitIndexes(move.captures).reverse().map(bit => 32-bit)
+        captures = ` (${c.join(',')})`
+    }
+    const s = 32 - (getPresentBitIndexes(move.start)[0])
+    const e = 32 - (getPresentBitIndexes(move.end)[0])
+    const moveString = `${s}-${e}${captures}`
+    return moveString
 }
+
 
 //export function generateResultsTable(results: Map<string, Result>, bots: string[]) {
 export function generateResultsTable(results: Result[], bots: string[], scores: Map<number, number>) {

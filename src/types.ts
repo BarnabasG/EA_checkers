@@ -62,7 +62,7 @@ export type WeightSet = {
 export interface TrainingParams {
     //standard?: boolean;
     trainingMethod?: string;
-    standardStartGeneration?: number;
+    startGeneration?: number;
     depth?: number;
     moveLimit?: number;
     generations?: number;
@@ -86,22 +86,32 @@ export interface TrainingParams {
 
 export enum WeightInit {
     RANDOM,
+    RANDOMPOSITIVE,
     ZERO,
     ONE,
     POINTFIVE,
     CAPTURE_PREFER,
-    TEST
+    TEST,
+    TRAINED
+}
+
+export enum SelectionMethod {
+    ROULETTE,
+    TOURNAMENT,
+    ELITIST,
+    RANK
 }
 
 export interface PopulationParams {
     populationSize?: number;
     population?: Map<number, WeightSet>;
     weightInit?: WeightInit;
+    testPopulation?: boolean;
 }
 
 export interface GenerationParams {
     //size?: number
-    selectionMethod?: number
+    selectionMethod?: SelectionMethod
     learningRate?: number
     selectionPercent?: number
     keepTopPercent?: number

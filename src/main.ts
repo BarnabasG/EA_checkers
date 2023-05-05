@@ -67,10 +67,10 @@ checkers.generatePreloadedDatabase()
 console.log(`Opening book generated in ${performance.now() - s1}ms`);
 
 let s2 = performance.now();
-checkers.train({ trainingMethod: 'STP5'});
+checkers.train({ trainingMethod: 'Experiment1'});
 
-//let logInstance = '11-04-2023_00-56-00'
-//checkers.continueTrainingFromJSONFile('STP5', `log_${logInstance}.txt`, 14)
+//let logInstance = '30-04-2023_21-05-49' //'11-04-2023_00-56-00'
+//checkers.continueTrainingFromJSONFile('Experiment1', `log_${logInstance}.txt`, 20)
 
 
 /*(async () => {
@@ -102,7 +102,7 @@ console.log('training time - ', performance.now() - s2);
 //checkers.test();
 
 
-console.log(`${roundTo(DBHits/(DBHits+DBMisses), 2)*100}% DB Hitrate`)
+console.log(DBHits, DBMisses, `${roundTo(DBHits/(DBHits+DBMisses), 2)*100}% DB Hitrate`)
 console.log(EvalHit, EvalMiss, `${roundTo(EvalHit/(EvalHit+EvalMiss), 2)*100}% Eval Hitrate`)
 
 //TODO implement function to restart from latest generation in gen log file

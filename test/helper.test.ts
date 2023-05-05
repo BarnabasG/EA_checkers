@@ -210,7 +210,7 @@ describe('checkDraw', () => {
 describe('checkDraw', () => {
     test('return draw by repetion for repeated moves', () => {
         expect(checkDraw(
-            [[1,2,0],[3,2,0],[1,2,0],[3,2,0],[1,2,0]],
+            [[9,9,9],[0,0,0],[0,0,1],[0,0,2],[9,9,9],[0,0,3],[0,0,4],[0,0,5],[9,9,9]],
             39
         ))
         .toBe(Status.DRAW_REPETITION);
@@ -220,7 +220,7 @@ describe('checkDraw', () => {
 describe('checkDraw', () => {
     test('return no draw where moves are different', () => {
         expect(checkDraw(
-            [[1,2,0],[3,2,0],[5,2,0],[3,2,0],[1,2,0]],
+            [[9,9,9],[0,0,0],[0,0,1],[0,0,2],[8,8,8],[0,0,3],[0,0,4],[0,0,5],[7,7,7]],
             39
         ))
         .toBe(Status.PLAYING);

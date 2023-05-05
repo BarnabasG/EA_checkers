@@ -14,13 +14,20 @@ export class Population {
         //population: Map<number, WeightSet> = generateInitialPopulation(size),
         populationParams: PopulationParams
     ) {
-        if (populationParams.population) {
-            this.size = populationParams.population.size;
-            this.population = populationParams.population;
+        if (populationParams.testPopulation) {
+            this.size = 2
+            this.population = new Map();
+            this.addTestBot(0);
+            this.addTestBot(1);
         } else {
-            this.size = populationParams.populationSize!;
-            populationParams.population = generateInitialPopulation(this.size, populationParams.weightInit),
-            this.population = populationParams.population;
+            if (populationParams.population) {
+                this.size = populationParams.population.size;
+                this.population = populationParams.population;
+            } else {
+                this.size = populationParams.populationSize!;
+                populationParams.population = generateInitialPopulation(this.size, populationParams.weightInit),
+                this.population = populationParams.population;
+            }
         }
         //this.randomiseWeights();
         //this.addTestBot();
@@ -47,6 +54,13 @@ export class Population {
             // Set the updated weightSet back into the Map
             this.population.set(key, newWeightSet);
         }
+    }
+
+    //for each member of the population, clear the saved evaluation
+    clearDatabases() {
+        this.population.forEach((weightSet, key) => {
+            weightSet.evaluationDB = {};
+        })
     }
 
 
@@ -80,10 +94,19 @@ export class Population {
             tournamentSize = 5,
             rankBias = 1
         } = generationParams;
+        //const selectionCount1 = Math.max(size > 2 ? 2 : 1, Math.floor(this.size * (selectionPercent / 100)));
+        //const keepTopCount1 = Math.max(size > 1 ? 1 : 0, Math.floor(this.size * (keepTopPercent / 100)));
+        //const randCount1 = Math.max(size > 1 ? 1 : 0, Math.floor(this.size * (randPercent / 100)));
+
+        // percentage of current generation to use as parents
         const selectionCount = Math.max(size > 2 ? 2 : 1, Math.floor(this.size * (selectionPercent / 100)));
-        const keepTopCount = Math.max(size > 1 ? 1 : 0, Math.floor(this.size * (keepTopPercent / 100)));
-        const randCount = Math.max(size > 1 ? 1 : 0, Math.floor(this.size * (randPercent / 100)));
-        //console.log(selectionCount, keepTopCount)
+        // percentage of top bots to keep for next generation
+        const keepTopCount = Math.max(size > 1 ? 1 : 0, Math.floor(size * (keepTopPercent / 100)));
+        // percentage of random bots to add next generation
+        const randCount = Math.max(size > 1 ? 1 : 0, Math.floor(size * (randPercent / 100)));
+
+        //console.log('old',selectionCount1, keepTopCount1, randCount1)
+        //console.log('new',selectionCount, keepTopCount, randCount)
 
         const nextGen = this.selection(selectionMethod, size, selectionCount, keepTopCount, randCount, learningRate, tournamentSize, rankBias);
         this.population = nextGen;
@@ -154,8 +177,8 @@ export class Population {
         switch (method) {
             case 0:
                 return this.selectionRoulette(nextGen, size, rankedPopulation, selectionCount, learningRate);
-            //case 1:
-            //    return this.selectionTournament(nextGen, size, rankedPopulation, selectionCount, learningRate, tournamentSize);
+            case 1:
+                return this.selectionTournament(nextGen, size, rankedPopulation, selectionCount, learningRate, tournamentSize);
             case 2:
                 return this.selectionElitist(nextGen, size, rankedPopulation, selectionCount, learningRate);
             case 3:
@@ -193,7 +216,7 @@ export class Population {
     }
 
 
-    /*selectionTournament(
+    selectionTournament(
         nextGen: Map<number, WeightSet>,
         size: number,
         rankedPopulation: Map<number, WeightSet>, //PopulationSet,
@@ -202,69 +225,38 @@ export class Population {
         tournamentSize: number
     ): Map<number, WeightSet> {
 
-        const numGroups = Math.ceil(selectionCount / tournamentSize);
+        function tournament(popSize: number, tournamentSize: number): number {
+            let bestScore = -Infinity;
+            let bestKey = -1;
 
-        const groups: number[][] = [];
-        for (let i = 0; i < tournamentSize; i++) {
-            groups.push([]);
-        }
-        
-        const keys = [...rankedPopulation.keys()];
-        for (let i = 0; i < keys.length; i++) {
-            const groupIndex = i % numGroups;
-            groups[groupIndex].push(keys[i]);
-        }
-
-        let scores: Map<number, number> = new Map();
-        for (let i = 0; i < groups.length; i++) {
-            const matches = permutations(groups[i])
-            for (let j = 0; j < matches.length; j++) {
-                let checkers = new CheckersGame();
-                for (let k = 0; k < 200; k++) {
-                    let moves = checkers.getMoves();
-                    let status = (moves.length == 0) ? (checkers.player === Player.WHITE ? Status.BLACK_WON : Status.WHITE_WON) : Status.PLAYING;
-                    if (status !== Status.PLAYING) {
-                        const winnerIndex = status == Status.WHITE_WON ? 0 : 1;
-                        scores.set(matches[j][winnerIndex], (scores.get(matches[j][winnerIndex]) || 0) + 1);
-                    }
-
-                    let move = minimax(checkers, 4, this.population, checkers.player === Player.WHITE ? indexes[0] : indexes[1]);
-                    //let move = minimax(checkers, this.depth, whiteWeights, blackWeights);
-                    //console.log('move', move)
-                    checkers = checkers.makeMove(move);
-
-                    //console.log("here")
-
-                    move.end && checkers.board.king ? nonManMoves++ : nonManMoves = 0;
-                    boardStack.push([checkers.board.white, checkers.board.black, checkers.board.king]);
-                    if (boardStack.length > 5) boardStack.shift();
-
-                    //console.log("here2")
-
-                    let s = checkDraw(boardStack, nonManMoves)
-                    if (s < 0) return s;
-
-                    //console.log("here3")
-                    
-                    
-                    //console.log('move', moveIndex, checkers.player === Player.WHITE ? 'black' : 'white')
-                    //printBoard(checkers.board.white, checkers.board.black, checkers.board.king);
-
-                    //console.log(move)
-                    //printBoard(checkers.board.white, checkers.board.black, checkers.board.king);
-                    //console.log('white eval', evaluateBoard(checkers, whiteWeights))
-                    //console.log('black eval', evaluateBoard(checkers, blackWeights))
-                    moveIndex++;
-                    //console.log(move, moveIndex, checkers.board)
-                }
-                return Status.DRAW_MOVELIMIT;
+            for (let i=0; i<tournamentSize; i++) {
+                let index = Math.floor(Math.random() * popSize);
+                const score = rankedPopulation.get(index)!.score;
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestKey = index;
                 }
             }
+
+            return bestKey;
         }
+        
+        let parents: number[] = [];
+        for (let i = 0; i < selectionCount; i++) {
+            parents.push(tournament(rankedPopulation.size, tournamentSize));
+        }
+
+        const children = this.generateChildren(parents, size-nextGen.size, learningRate, rankedPopulation);
+
+        const prepopSize = nextGen.size;
+        for (let i=prepopSize; i<size; i++) {
+            nextGen.set(i, children[i-prepopSize]);
+        }
+
+        this.resetScores();
+        return nextGen;
     
-    
-    return nextGen;
-    }*/
+    }
 
 
     selectionElitist(
@@ -274,7 +266,13 @@ export class Population {
         selectionCount: number,
         learningRate: number
     ): Map<number, WeightSet> {
-        
+
+        let elites = [...rankedPopulation.values()].slice(0, selectionCount);
+
+        let finalCount = nextGen.size + elites.length;
+        for (let i=nextGen.size; i<finalCount; i++) {
+            nextGen.set(i, elites[i-nextGen.size]);
+        }
         
         const parents = [...rankedPopulation.keys()].slice(0, selectionCount);
         console.log('selected parents', parents);
