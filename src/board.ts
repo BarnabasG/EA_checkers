@@ -27,7 +27,7 @@
 
 
 import { BloomDatabase, HashMap } from './database';
-import { generateBin, getAvrDist, getPieceCount, reverseBits, roundTo } from './helper';
+import { generateBin, getAvrDist, getBoardFromBin, getPieceCount, reverseBits, roundTo } from './helper';
 import { BoardStats, Move, Player } from './types';
 
 
@@ -290,6 +290,7 @@ export class Board {
 
     // get count of defended pieces for a given colour
     getDefended(pieces: number, oppPieces: number): number {
+
         let defended: number = 0
 
         defended |= pieces & (EDGES | KINGROW_BLACK | KINGROW_WHITE)
@@ -351,7 +352,7 @@ export class Board {
             DBMisses++;
         }
         blackStats["kings"] = getPieceCount(this.blackKing)
-        blackStats["defended"] = this.getDefended(this.black, this.white)
+        blackStats["defended"] = this.getDefended(reverseBlack, reverseBits(this.white))
         blackStats["attacks"] = this.getAttacksBlack()
 
         return this.getBoardStatDifferece(whiteStats, blackStats);

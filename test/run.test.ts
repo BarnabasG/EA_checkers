@@ -8,6 +8,7 @@ describe('compete', () => {
         let c = new Checkers();
         c.setPopulation({populationSize: 2, weightInit: WeightInit.TEST});
         c.setMoveLimit(10);
+        c.setDepth(1);
         expect(c.compete([0,1])).toBe(5);
     });
 });

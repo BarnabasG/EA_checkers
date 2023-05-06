@@ -1,6 +1,6 @@
 import { describe, expect, test } from '@jest/globals';
-import { areListsEqual, checkDraw, decToBin, generateInitialPopulation, generateKey, generateKeyComplete, getAvrDist, getBoardFomBin, getPieceCount, getPopulationMatches, getPresentBitIndexes, getPresentBits, getWeights, loadPopFromJSON, pad, permutations, roundTo } from '../src/helper';
-import { Status, WeightInit, WeightSet } from '../src/types';
+import { areListsEqual, checkDraw, decToBin, generateInitialPopulation, generateKey, generateKeyComplete, getAvrDist, getBestBoardDefault, getBoardFromBin, getPieceCount, getPopulationMatches, getPresentBitIndexes, getPresentBits, getWeights, moveToMoveString, pad, permutations, reverseBits, roundTo } from '../src/helper';
+import { Move, Status, WeightInit, WeightSet } from '../src/types';
 
 
 describe('decToBin', () => {
@@ -41,7 +41,7 @@ describe('getPresentBitIndexes', () => {
 
 describe('getBoardFomBin', () => {
     test('should convert 01010101000000000000001111111111 to correct board', () => {
-        expect(getBoardFomBin('01010101000000000000001111111111'))
+        expect(getBoardFromBin('01010101000000000000001111111111'))
         .toStrictEqual(["- 0 - 1 - 0 - 1",
                         "0 - 1 - 0 - 1 -",
                         "- 0 - 0 - 0 - 0",
@@ -133,6 +133,47 @@ describe('getWeights', () => {
         });
     });
 });
+
+describe('getWeights', () => {
+    test('should return trained weights', () => {
+        expect(getWeights(WeightInit.TRAINED))
+        .toStrictEqual({
+            pieces: 1.9567,
+            kings: 1.6984,
+            avrDist: -1.764,
+            backline: 0.887,
+            corners: 0.918,
+            edges: 1.055,
+            centre2: -0.4836,
+            centre4: 1.416,
+            centre8: 0.5351,
+            defended: -0.715,
+            attacks: 0.0118
+        });
+    });
+});
+
+describe('getBestBoardDefault', () => {
+    test('should return maximum values for each statistic', () => {
+        expect(getBestBoardDefault())
+        .toStrictEqual({
+            pieces: 11,
+            kings: 11,
+            avrDist: 7,
+            backline: 4,
+            corners: 2,
+            edges: 12,
+            centre2: 2,
+            centre4: 4,
+            centre8: 8,
+            defended: 12,
+            attacks: 12
+        });
+    });
+});
+
+
+
 
 describe('generateKeyComplete', () => {
     test('should return key for board', () => {
@@ -282,15 +323,35 @@ describe('generateInitialPopulation', () => {
     });
 });
 
-/*describe('getRandomSample', () => {
-    test('return random samle', () => {
-        expect(getRandomSample([0,1,2,3,4,5], 3))
-        .toHaveLength(3);
+
+describe('moveToMoveString', () => {
+    test('return correct move string', () => {
+        let move: Move = {
+            start:      0b00000000000000000000000100000000,
+            end:        0b00000000000000100000000000000000,
+            captures:   0b00000000000000000010000000000000,
+        }
+        expect(moveToMoveString(move)).toBe('24-15 (19)');
     });
-});*/
+});
 
 
+describe('moveToMoveString', () => {
+    test('return correct move string', () => {
+        let move: Move = {
+            start:      0b00000000000000000000000100000000,
+            end:        0b00000100000000000000000000000000,
+            captures:   0b00000000010000000010000000000000,
+        }
+        expect(moveToMoveString(move)).toBe('24-6 (10,19)');
+    });
+});
 
 
-
+describe('reverseBits', () => {
+    test('return correct reversed bits', () => {
+        expect(reverseBits(0b11101010000000000000000000001000))
+        .toBe(0b00010000000000000000000001010111);
+    });
+});
 

@@ -5,13 +5,9 @@ import { BoardStats, GenerationParams, Player, PopulationParams, Status, WeightI
 export class Population {
 
     public size: number;
-    //population: PopulationSet;
     public population: Map<number, WeightSet>;
 
     constructor (
-        //size: number,
-        //population: PopulationSet = generateInitialPopulation(size),
-        //population: Map<number, WeightSet> = generateInitialPopulation(size),
         populationParams: PopulationParams
     ) {
         if (populationParams.testPopulation) {
@@ -29,20 +25,13 @@ export class Population {
                 this.population = populationParams.population;
             }
         }
-        //this.randomiseWeights();
-        //this.addTestBot();
     }
 
     randomiseWeights(): void {
-        // Iterate over each entry in the Map
         for (const [key, weightSet] of this.population.entries()) {
-            // Iterate over each property of the BoardStats object
             const newWeights: BoardStats = {};
             for (const prop in weightSet.weights) {
-                //if (Object.prototype.hasOwnProperty.call(weightSet.weights, prop)) {
-                // Assign a random value to the property
-                newWeights[prop] = randomNeg() //* Math.random();
-                //}
+                newWeights[prop] = randomNeg()
             }
 
             const newWeightSet: WeightSet = {
@@ -51,7 +40,6 @@ export class Population {
                 evaluationDB: weightSet.evaluationDB
             };
 
-            // Set the updated weightSet back into the Map
             this.population.set(key, newWeightSet);
         }
     }
@@ -83,8 +71,6 @@ export class Population {
 
     nextGeneration(size: number = this.size, generationParams: GenerationParams = {}): void {//Map<number, WeightSet> {//PopulationSet {
         console.log('nextGeneration', generationParams)
-        //console.log(this)
-        //if (size === undefined) size = this.size;
         const {
             selectionMethod = 0,
             learningRate = 0.1,
@@ -94,9 +80,6 @@ export class Population {
             tournamentSize = 5,
             rankBias = 1
         } = generationParams;
-        //const selectionCount1 = Math.max(size > 2 ? 2 : 1, Math.floor(this.size * (selectionPercent / 100)));
-        //const keepTopCount1 = Math.max(size > 1 ? 1 : 0, Math.floor(this.size * (keepTopPercent / 100)));
-        //const randCount1 = Math.max(size > 1 ? 1 : 0, Math.floor(this.size * (randPercent / 100)));
 
         // percentage of current generation to use as parents
         const selectionCount = Math.max(size > 2 ? 2 : 1, Math.floor(this.size * (selectionPercent / 100)));
@@ -105,18 +88,9 @@ export class Population {
         // percentage of random bots to add next generation
         const randCount = Math.max(size > 1 ? 1 : 0, Math.floor(size * (randPercent / 100)));
 
-        //console.log('old',selectionCount1, keepTopCount1, randCount1)
-        //console.log('new',selectionCount, keepTopCount, randCount)
-
         const nextGen = this.selection(selectionMethod, size, selectionCount, keepTopCount, randCount, learningRate, tournamentSize, rankBias);
         this.population = nextGen;
         this.size = size;
-        console.log('new generation size:', this.size);
-        //this.addTestBot();
-
-        //console.log('nextGen', nextGen)
-
-        //return nextGen;
     }
 
     rankPopulation(): Map<number, WeightSet> {
@@ -145,11 +119,9 @@ export class Population {
             learningRate: number,
             tournamentSize: number,
             rankBias: number
-        ): Map<number, WeightSet> {//PopulationSet {
+        ): Map<number, WeightSet> {
 
-        //const rankedPopulation: PopulationSet = this.rankPopulation();
         const rankedPopulation: Map<number, WeightSet> = this.rankPopulation();
-        //console.log('rankedPopulation', rankedPopulation)
 
         let nextGen: Map<number, WeightSet> = new Map();
 
@@ -206,15 +178,12 @@ export class Population {
 
         const prepopSize = nextGen.size;
         for (let i=prepopSize; i<size; i++) {
-            //console.log('set', i, children[i-propopSize])
-            //console.log('0', nextGen.get(0)!.weights)
             nextGen.set(i, children[i-prepopSize]);
         }
 
         this.resetScores();
         return nextGen;
     }
-
 
     selectionTournament(
         nextGen: Map<number, WeightSet>,
@@ -258,7 +227,6 @@ export class Population {
     
     }
 
-
     selectionElitist(
         nextGen: Map<number, WeightSet>,
         size: number,
@@ -297,7 +265,6 @@ export class Population {
     ): Map<number, WeightSet> {//PopulationSet {
 
         const keys = [...rankedPopulation.keys()];
-        //const ranks = [...Array(keys.length).keys()].map((i) => Math.pow(i+1, rankBias));
         const ranks = [...Array.from({length: keys.length}, (_, i) => keys.length - i)].map((i) => Math.pow(i, rankBias));
         console.log(ranks)
 
@@ -314,8 +281,6 @@ export class Population {
         this.resetScores();
         return nextGen;
     }
-
-
 
     generateChildren(
             parents: number[],
@@ -340,24 +305,15 @@ export class Population {
         let child: WeightSet = {
             'weights': {},
             'score': 0,
-            //'evaluationDB': new BloomHashMapEvalData()
             'evaluationDB': {},
         };
         for (let key in parent.weights) {
-            //child['weights'][key] = parent['weights'][key] + (learningRate * randomNeg());
             child['weights'][key] = parent['weights'][key] + randomNeg(learningRate);
         }
         return child;
     }
 
     resetScores(): void {
-        //for (const memberIdx in this.population) {
-        //let ws: WeightSet;
-        //for (const memberIdx in this.population.keys()) {
-            //this.population[memberIdx]['score'] = 0;
-        //    ws = this.population.get(+memberIdx);
-        //    this.population.set(+memberIdx, ws => ws.score = 0);
-        //}
         for (const [key, value] of this.population.entries()) {
             value.score = 0;
             this.population.set(key, value);
@@ -371,18 +327,10 @@ export class Population {
         return bestWeights;
     }
 
-    // get the indexes of the best n members of the population
     getBestNMembers(n: number): number[] {
-        //const rankedPopulation = this.rankPopulation();
-        //const bestNMembers = Array.from(rankedPopulation.keys()).slice(0, n);
-        //console.log('bestNMembers', bestNMembers)
-        //return bestNMembers;
         const ranked = [...this.population.entries()].sort((a, b) => b[1].score - a[1].score);
-        //console.log('ranked', ranked);
         const topNPairs = ranked.slice(0, n);
-        //console.log('topNPairs', topNPairs)
         const topNKeys = topNPairs.map(pair => pair[0]);
-        //console.log('topNKeys', topNKeys)
         return topNKeys;
     }
 
@@ -391,7 +339,6 @@ export class Population {
         this.population.set(id, {
             'weights': getWeights(WeightInit.POINTFIVE),
             'score': 0,
-            //'evaluationDB': new BloomHashMapEvalData()
             'evaluationDB': {},
         });
         return id;
@@ -402,7 +349,6 @@ export class Population {
         this.population.set(id, {
             'weights': getWeights(WeightInit.CAPTURE_PREFER),
             'score': 0,
-            //'evaluationDB': new BloomHashMapEvalData()
             'evaluationDB': {},
         });
         return id;
@@ -418,77 +364,9 @@ export class Population {
             this.population.set(i, {
                 'weights': weights[i],
                 'score': 0,
-                //'evaluationDB': new BloomHashMapEvalData()
                 'evaluationDB': {},
             });
         }
     }
 
 }
-
-
-
-/*function generateInitialPopulation(size: number): Map<number, WeightSet> {//PopulationSet {
-    //let population: PopulationSet = {};
-    let population: Map<number, WeightSet> = new Map();
-    //const weights = getInitBoardStats(1);
-    for (let i = 0; i < size; i++) {
-        population.set(i, {
-            //'weights': weights,
-            'weights': getRandomWeights(),
-            'score': 0,
-            'evaluationDB': {},
-        });
-    }
-    return population;
-}*/
-
-
-
-/*let p = new Population(10);
-//console.log(p.size);
-//console.log(p.population);
-//p.randomiseWeights();
-//console.log(p.population);
-//console.log(p.getScores());
-
-//for (const memberIdx in p.population) {
-//    p.population[memberIdx]['score'] = Math.random();
-//}
-
-for (const [key, value] of p.population.entries()) {
-    value.score = Math.random();
-    p.population.set(key, value);
-}
-
-console.log(p.getScores());
-p.rankPopulation();
-
-
-//console.log();
-console.log('1', p);
-//console.log('1',p.population);
-p.nextGeneration();
-console.log('2',p);
-//console.log('2',p.population);
-p.nextGeneration();
-console.log('3',p);
-//console.log('3',p.population);
-*/
-
-/*const nextGen = Object.keys(p.population)
-    .slice(0, 3)
-    .map((key) => p.population[key]);
-
-console.log(nextGen);
-
-
-export interface PopulationSet {
-    [key: number]:  WeightSet;
-}
-
-let rankedPopulation: PopulationSet;
-
-nextGen = Object.keys(rankedPopulation)
-        .slice(0, keepTopCount)
-        .map((key) => rankedPopulation[key]);*/

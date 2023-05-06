@@ -1,83 +1,5 @@
-//import { minimax, evaluateBoard } from "./ai";
-//import { Board } from "./board";
-//import { Checkers } from "./checkers";
-//import {  } from "./bloomDatabase";
 import { BoardStats, Status, Result, WeightSet, WeightInit, Player, Move } from "./types";
 
-//let s1 = performance.now();
-//import boardDB from '../boardDB_6.json';
-//import boardDB from '../positionStatDB.json';
-//console.log('JSON loaded in', performance.now() - s1, 'ms')
-
-
-//import boardDB from '../positionStatDB.json';
-
-
-
-//console.log(boardDB)
-
-//export var boardStatsDatabase: BoardDatabase = {};
-//export var boardStatsDatabase: BloomHashMapBoardStats = new BloomHashMapBoardStats();
-
-//export function clearBoardDB() {
-//    boardStatsDatabase = new BloomHashMapBoardStats();
-//}
-
-
-
-/*console.log('Reading board database json')
-let s = performance.now();
-try {
-    boardStatsDatabase = boardDB;
-} catch (e) {
-    console.log('error', e, 'failed to read boardDB.json');
-    boardStatsDatabase = {};
-}
-
-console.log('Board database json read', performance.now() - s, 'ms')
-console.log('saved layouts', Object.keys(boardStatsDatabase).length);*/
-
-/*
-export function getBoardStatsDatabase() {
-    console.log('Reading board database json')
-    let s = performance.now();
-    export var boardStatsDatabase: BoardDatabase = boardDB;
-    console.log('Board database json read', performance.now() - s, 'ms')
-    console.log('saved layouts', Object.keys(boardStatsDatabase).length);
-}*/
-
-//console.log('length before', Object.keys(boardStatsDatabase).length);
-//console.log(boardStatsDatabase);
-
-
-/*export function getBoardStatsDatabase() {
-    console.log('getBoardStatsDatabase');
-    var fs = require('fs');
-    fs.readFile('boardDB.json', 'utf8', function readFileCallback(err: any, data: string) {
-        if (err){
-            console.log('err', err);
-        } else {
-            console.log('data (get function)', data);
-            console.trace();
-            boardStatsDatabase = JSON.parse(data);
-            //obj.table.push({id: 2, square:3}); //add some data
-            //json = JSON.stringify(obj); //convert it back to json
-            //fs.writeFile('boardDB.json', json, 'utf8', callback); // write it back 
-        }
-    });
-    console.log('before', boardStatsDatabase);
-    return boardStatsDatabase;
-}*/
-
-/*export function saveBoardStatsDatabase(database: BoardDatabase = undefined, filename: string = 'boardDB.json') {
-    console.log('saveBoardStatsDatabase');
-    var fs = require('fs');
-    let db = database == undefined ? boardStatsDatabase: database;
-    let json = JSON.stringify(db);
-    //fs.writeFile('positionStatDB.json', json, 'utf8', function (err: any) { if (err) throw err; console.log('complete'); });
-    fs.writeFile(filename, json, 'utf8', function (err: any) { if (err) throw err; console.log('complete'); });
-    console.log('saved layouts after', Object.keys(db).length);
-}*/
 
 export function decToBin(dec: number): string {
     return (dec >>> 0).toString(2);
@@ -135,7 +57,8 @@ export function getPresentBitIndexes(value: number): number[] {
     return indexArr;
 }
 
-export function getBoardFomBin(n: number | string) {
+//generate a printable board from a binary integer or string
+export function getBoardFromBin(n: number | string) {
 
     let lists = getBoardString(n).match(/.{1,4}/g)
     if (lists) {
@@ -144,10 +67,10 @@ export function getBoardFomBin(n: number | string) {
             lists[i] = i%2==0 ? '- ' + lists[i] : lists[i] + ' -';
         }
     }
-
     return lists;
 }
 
+//print the board in an understandable view
 export function printBoard(white: number, black: number, king: number, print: boolean = true): string[] {
 
     const arr: string[] = Array(32).fill('-');
@@ -200,39 +123,13 @@ export function randomNeg(minmax: number = 1) : number {
     return Math.random() * (Math.round(Math.random()) ? 1 : -1) * minmax;
 }
 
-
-/*export function reduceCaptures(moves: any[]) {
-    let reduced = 0;
-    for (let i=0; i < moves.length; i++) {
-        reduced += moves[i].captures;
-    }
-    return reduced;
-}*/
-
-
 export function getPieceCount(value: number): number {
     let count = 0;
-  
     for (let index = 0; index < 32; index++) {
         const bit = value & (1 << index);
         if (bit) count += 1;
     }
-  
     return count;
-}
-
-export function getAvrDistPlayer(value: number, player: Player): number {
-    let pieceCount = 0;
-    let total = 0;
-    for (let index = 0; index < 32; index++) {
-        const bit = value & (1 << index);
-        if (bit) {
-            pieceCount += 1;
-            total += Math.floor(index/4);
-        }
-    }
-    if (pieceCount == 0) return 0;
-    return player === Player.WHITE ? total / pieceCount : 7 - (total / pieceCount);
 }
 
 export function getAvrDist(value: number): number {
@@ -251,14 +148,7 @@ export function getAvrDist(value: number): number {
 
 export function writeToFile(filename: string, data: any, newline: boolean = true) {
     const fs = require('fs');
-
-    /*fs.appendFile(filename, data, function (err) {
-        if (err) throw err;
-        console.log('Saved!');
-    });*/
-
     if (newline) data = `${data}\n`;
-
     fs.appendFileSync(filename, data);
 }
 
@@ -383,18 +273,6 @@ export function getTrainedWeights(): BoardStats {
         centre8: 0.5351,
         defended: -0.715,
         attacks: 0.0118
-
-        /*pieces: 1.463598210928826,
-        kings: 1.1754549874237703,
-        avrDist: 0.688827059204624,
-        backline: 0.03311312117447411,
-        corners: 0.3405034818255814,
-        edges: 1.7260593940817959,
-        centre2: -0.18244112696247333,
-        centre4: 0.001300053814921473,
-        centre8: 2.340136341332912,
-        defended: 0.16959424599386022,
-        attacks: -1.1544734069298368*/
     }
 }
 
@@ -414,41 +292,17 @@ export function getBestBoardDefault(): BoardStats {
     }
 }
 
+// generate a unique key from all piece locations
 export function generateKeyComplete(white: number, black: number, king: number): string {
     return `${white}/${black}/${king}`;
-    /*let key = '';
-    for (let index = 0; index < 32; index++) {
-        let bitWhite = white & (1 << index)
-        let bitBlack = black & (1 << index)
-        let bitKing = king & (1 << index)
-        if (bitWhite) {
-            if (bitKing) {
-                key += 'W';
-            } else {
-                key += 'w'; 
-            }
-        } else if (bitBlack) {
-            if (bitKing) {
-                key += 'B';
-            } else {
-                key += 'b'; 
-            }
-        } else {
-            key += '0';
-        }
-    }*/
-
-    // compress key with run length encoding (RLE) (optional - performance hit for compression)
-    //key = key.replace(/([ \w])\1+/g, (group, chr) => group.length + chr);
-
-    //return key;
 }
 
+// generate a unique key from the pieces of one colour
 export function generateKey(value: number, king: number): string {
     return `${value}/${value & king}`;
 }
 
-
+// reverse the bits in a 32 bit int
 export function reverseBits(x: number) {
     x = ((x >> 1) & 0x55555555) | ((x & 0x55555555) << 1);
     x = ((x >> 2) & 0x33333333) | ((x & 0x33333333) << 2);
@@ -478,12 +332,8 @@ export function getTime(): string {
     return time;
 }
 
-
+// generate the pairing of matches for a population
 export function getPopulationMatches(popSize: number, competition: number = 0, matchCount: number = 10): number[][] {
-    //if (competition === 0) {
-    //return permutations([...Array(popSize).keys()],2);
-    //}
-
     if (popSize < 2) return [];
 
     switch (competition) {
@@ -496,12 +346,12 @@ export function getPopulationMatches(popSize: number, competition: number = 0, m
     }
 }
 
-
+// everyone plays everyone
 export function roundRobinMatches(popSize: number): number[][] {
     return permutations([...Array(popSize).keys()],2);
 }
 
-
+// everyone plays matchCount random opponents
 export function randomOppMatches(popSize: number, matchCount: number): number[][] {
     let matches: number[][] = [];
 
@@ -537,9 +387,6 @@ export function randomOppMatches(popSize: number, matchCount: number): number[][
 }
 
 
-
-
-
 export function popRandom<T>(array: T[]): T | undefined {
     if (array.length === 0) {
       return undefined;
@@ -566,7 +413,6 @@ export function getStandardDeviation(numbers: number[]): number {
     return standardDeviation;
 }
 
-  
 
 export function permutations(arr: number[], len: number = arr.length): number[][] {
 	
@@ -605,10 +451,6 @@ export function weightedRandom(values: any[], weights: number[], n: number): any
         throw new Error('Values and weights arrays must be of equal length.');
     }
 
-    //console.log('values', values)
-    //console.log('weights', weights)
-    //console.log('n', n)
-
     if (weights.reduce((a, b) => a + b, 0) == 0) {
         // All weights are 0, so return values with equal probability
         weights = weights.map(() => 1);
@@ -646,11 +488,6 @@ export function checkDraw(boardStack: number[][], nonManMoves: number): number {
 
     //check for draw by repetition
     if (boardStack.length > 8) {
-        //console.log('boardStack', boardStack.length)
-        //for (let i = 0; i < boardStack.length; i++) {
-        //    console.log(i, boardStack[i])
-        //}
-        //console.log('boardStack', boardStack[boardStack.length-1], boardStack[boardStack.length-3], boardStack[boardStack.length-5])
         if (areListsEqual(boardStack[boardStack.length-1], boardStack[boardStack.length-5], boardStack[boardStack.length-9])) {
             return Status.DRAW_REPETITION;
         }
@@ -671,48 +508,17 @@ export function areListsEqual(list1: number[], list2: number[], list3: number[])
 }
 
 export function generateInitialPopulation(size: number, weightInit?: WeightInit): Map<number, WeightSet> {//PopulationSet {
-    //let population: PopulationSet = {};
     let population: Map<number, WeightSet> = new Map();
     if (weightInit === undefined) weightInit = WeightInit.RANDOM;
-    //const weights = getInitBoardStats(1);
     for (let i = 0; i < size; i++) {
         population.set(i, {
-            //'weights': weights,
-            'weights': getWeights(weightInit),//getRandomWeights(),
+            'weights': getWeights(weightInit),
             'score': 0,
-            //'evaluationDB': new BloomHashMapEvalData(),
             'evaluationDB': {},
         });
     }
     return population;
 }
-
-/*export function getRandomSample<T>(arr: T[], sampleSize: number): T[] {
-    const sample: T[] = [];
-    const copiedArray = [...arr]; // create a copy of the original array
-  
-    while (sample.length < sampleSize && copiedArray.length > 0) {
-      const randomIndex = Math.floor(Math.random() * copiedArray.length);
-      sample.push(copiedArray[randomIndex]);
-      copiedArray.splice(randomIndex, 1); // remove the selected element from the copied array
-    }
-  
-    return sample;
-}
-
-function getRandomSample<T>(arr: T[], sampleSize: number): T[] {
-	if (sampleSize >= arr.length) {
-	  return [...arr]
-	}
-
-	const sample: T[] = [];
-	for (let i = 0; i < sampleSize; i++) {
-		const randomIndex = Math.floor(Math.random() * (arr.length - i));
-		sample.push(arr[randomIndex]);
-		arr[randomIndex] = arr[arr.length - i - 1];
-	}
-	return sample;
-}*/
 
 export function moveToMoveString(move: Move): string {
     let captures = ''
@@ -727,135 +533,41 @@ export function moveToMoveString(move: Move): string {
 }
 
 
-//export function generateResultsTable(results: Map<string, Result>, bots: string[]) {
 export function generateResultsTable(results: Result[], bots: string[], scores: Map<number, number>) {
 
     console.log('generating results table')
-    //console.log(results)
-    //console.log(bots)
 
-    const table: (string | number)[][] = [] //createZeroMatrix(bots.length, -2);
-    //console.log(table)
-
-    //console.log(results.array.forEach(element => {
-    //    element.white
-    //});
-    
-    const headers: string[] = ['-', ...bots, 'score']// ["", ...results.map((bot) => bot.white.toString())];
-
-    // Set the first row of the table to be the headers
+    const table: (string | number)[][] = []
+    const headers: string[] = ['-', ...bots, 'score']
     table.push(headers);
-    //console.log(table)
-
-    //for (let i=0; i<bots.length, i++) {
-    //    table
-    //}
-
-    // Fill in the remaining rows of the table
-
-    //for (const res in results.keys()) {
-
-    //}
-
-    
-    //for (const i in bots) {
-
-
-    //TODO rethink table layout
 
     for (let i=0; i<bots.length; i++) {
-        // Create a new row with the bot name as the first element
         const row: (string | number)[] = [bots[i]];
-        //console.log(i)
-        //console.log(i, bots)
 
-        //for (const j in bots) {
         for (let j=0; j<bots.length; j++) {
-            //console.log(bots[i], bots[j])
             if (i === j) {
-                row.push(0); // Bot cannot play against itself
+                row.push(0);
             } else {
-                // Simulate a game between bots i and j
-                //const result = simulateGame(bots[i], bots[j]);
-                //const result = results.get(i.concat(",",j));
                 let r: Map<number, Result> = new Map();
                 for (const obj of results) {
                     if (obj.white == +bots[i] && obj.black == +bots[j]) r.set(1,obj);
                     if (obj.white == +bots[j] && obj.black == +bots[i]) r.set(2,obj);
                 }
-                //console.log(r)
                 let res: string;
                 let r1 = r.get(1)!.result;
                 let r2 = r.get(2)!.result;
                 r1 > 2 ? res  = "D": r.get(1)!.result == 1 ? res  = "W": res  = "L";
                 r2 > 2 ? res += "D": r.get(2)!.result == 1 ? res += "L": res += "W";
-                //console.log('res',res)
-
-                // Add the result to the row
-                //row.push(result.result);
                 row.push(res);
             }
-        }/**/
+        }
         row.push(scores.get(+bots[i])!);
         row.push()
-        // Add the row to the table
         table.push(row);
     }
-    
-    // Print the table
-    //console.log(table)
-    //console.table(table);
-
     return table;
 }
 
-
-/*
-
-- 1 2 3
-1 0 2 3
-2 2 0 3
-3 3 3 0
-
-- 1 2 3
-1 0 2 3
-2 2 0 3
-3 3 3 0
-
-
-
-*/
-
-/*function getLastLine(filename: string): string {
-
-    const fs = require('fs');
-    const readline = require('readline');
-
-    //const filename = 'example.txt';
-
-    const readInterface = readline.createInterface({
-        input: fs.createReadStream(filename),
-        console: false
-    });
-
-    let lastLine: string = '';
-
-    readInterface.on('line', (line: string) => {
-        lastLine = line;
-    });
-
-    readInterface.on('close', () => {
-        console.log(lastLine);
-    });
-
-    return lastLine;
-}*/
-
-//export async function loadLatestPopFromJSON(filename: string = '../inputGen.json'): Promise<any> {
-    //let moduleName: string = filename;
-    //let importedJSON = await importModule(moduleName);
-    //return await importedJSON['population'];
-//}
 
 export async function loadPopFromJSON(filename: string = '../inputGen.json'): Promise<any> {
     let moduleName: string = filename;
@@ -868,152 +580,6 @@ async function importModule(moduleName: string): Promise<any> {
     const importedModule = await import(moduleName);
     return importedModule.default;
 }
-
-
-//console.log(getBoardFomBin(2073))
-
-/*export function getFiles(directory: string) {
-    const fs = require('fs');
-    const directoryPath = directory;
-
-    fs.readdir(directoryPath, (err: any, files: string[]) => {
-        if (err) {
-            console.error('Error getting directory content:', err);
-            return;
-        }
-        
-        console.log('List of files:');
-        files.forEach(file => {
-            console.log(file);
-        });
-    })
-}*/
-
-/*export function getFiles(directoryPath: string): Promise<string[]> {
-    const fs = require('fs');
-    return new Promise((resolve, reject) => {
-        fs.readdir(directoryPath, (err: any, files: string[] | PromiseLike<string[]>) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(files);
-            }
-        });
-    });
-}*/
-
-/*export function getLastFilenameInDirectory(directoryPath: string): Promise<string> {
-    const fs = require('fs');
-    return new Promise((resolve, reject) => {
-        fs.readdir(directoryPath, (err: any, files: string | any[]) => {
-            if (err) {
-                reject(err);
-            } else {
-                const lastFilename = files[files.length - 1];
-                resolve(lastFilename);
-            }
-        });
-    });
-  }*/
-  
-
-//getFiles('../');
-
-
-/*async function exampleUsage() {
-    const directoryPath = './generation_log';
-    try {
-        const filenames = await getFiles(directoryPath);
-        console.log('List of filenames:', filenames);
-        return filenames;
-    } catch (err) {
-        console.error('Error getting directory content:', err);
-    }
-}*/
-  
-//const f = exampleUsage();
-//console.log('files', f)
-  
-//const files = await getFiles('./generation_log');
-//console.log('files', files)
-//const latest = files![files!.length - 1];
-//console.log('latest', latest)
-//getLastLine(latest);
-
-
-//getFiles('./generation_log');
-
-
-//loadPopFromJSON().then((x) => {
-//    console.log("Resolved value: ", x);
-//}).catch((err) => {
-//    console.log("Error: ", err);
-//});
-
-
-
-/*
-export function listToPopulationSet(list: any[]): PopulationSet {
-    let populationSet: PopulationSet = {
-        population: [],
-        weights: []
-    }
-    for (let item of list) {
-        populationSet.population.push(item);
-        populationSet.weights.push(1);
-    }
-    return populationSet;
-}*/
-
-
-
-/*import { Checkers } from "./checkers";
-let checkers = new Checkers();
-console.log(checkers.population)
-console.log('---')
-console.log(checkers.population.population)
-console.log('---')
-console.log(checkers.population.population[0])
-console.log('---')
-console.log(checkers.population.population[0]['weights'])*/
-
-
-/*export function boardLookup(board: Board): BoardStats | undefined {
-    let key = getBoardString(board.white) + getBoardString(board.black) + getBoardString(board.king);
-    console.log(key)
-    if (boardStatsDatabase[key]) {
-        return boardStatsDatabase[key];
-    }
-    return undefined;
-}*/
-
-
-//export function getBackline(value: number, player: Player): number {
-//    return player === Player.WHITE ? getPieceCount(value & KINGROW_BLACK) : getPieceCount(value & KINGROW_WHITE);
-//}
-
-//export function getEdges(value: number): number {
-//    return getPieceCount(value & EDGES);
-//}
-
-//export function getCentre2(value: number): number {
-//    return getPieceCount(value & CENTRE2);
-//}
-
-
-
-
-/*let value = 0b1010_1001_0110_0000_0000_0000_1001_0001;
-console.log(getAvrDist(value, Player.WHITE))
-console.log(getAvrDist(value, Player.BLACK))
-console.log(getBackline(value, Player.WHITE))
-console.log(getBackline(value, Player.BLACK))
-console.log(getEdges(value))*/
-
-//console.log(roundTo(1.23456789, 2))
-
-//randomOppMatches(11, 3)
-
 
 
 

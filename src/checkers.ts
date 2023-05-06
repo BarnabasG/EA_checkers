@@ -1,6 +1,6 @@
 import { Board } from "./board";
 import { Player, Move, BoardStats } from "./types";
-import { getPresentBits, getBoardFomBin, getBestBoardDefault } from "./helper";
+import { getPresentBits, getBoardFromBin, getBestBoardDefault } from "./helper";
 
 export class CheckersGame {
     public board: Board;
@@ -49,7 +49,7 @@ export class CheckersGame {
                 throw new Error('invalid move');
             }
         }
-        if (move.captures) getBoardFomBin(move.captures)
+        if (move.captures) getBoardFromBin(move.captures)
         const nextBitboard = this.player === Player.WHITE ? this.board.makeMoveWhite(move) : this.board.makeMoveBlack(move);
         const nextPlayerToMove = this.player === Player.WHITE ? Player.BLACK : Player.WHITE;
 
